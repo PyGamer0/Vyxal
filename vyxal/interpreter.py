@@ -13,6 +13,7 @@ from vyxal.builtins import *
 from vyxal.commands import *
 from vyxal.parser import *
 from vyxal.utilities import *
+from vyxal.vy_globals import CTX
 
 try:
     import numpy
@@ -59,7 +60,9 @@ def vy_compile(program, header=""):
         token_name, token_value = token
         if token_name == Structure.NONE:
             if token_value[0] == Digraphs.CODEPAGE:
-                compiled += f"vy_globals.stack.append({codepage.find(str(token_value[1]))} + 101)"
+                compiled += (
+                    f"CTX.stack.append({codepage.find(str(token_value[1]))} + 101)"
+                )
             else:
                 compiled += command_dict.get(token[1], "  ")[0]
         elif token_name == Structure.NUMBER:
@@ -70,35 +73,33 @@ def vy_compile(program, header=""):
                 value = value[:end]
 
             if value.isnumeric():
-                compiled += f"vy_globals.stack.append({value})"
+                compiled += f"CTX.stack.append({value})"
             else:
                 try:
                     float(value)
-                    compiled += f"vy_globals.stack.append(sympy.Rational({value}))"
+                    compiled += f"CTX.stack.append(sympy.Rational({value}))"
                 except:
-                    compiled += f"vy_globals.stack.append(sympy.Rational('0.5'))"
+                    compiled += f"CTX.stack.append(sympy.Rational('0.5'))"
         elif token_name == Structure.STRING:
             string, string_type = token_value[0], token_value[1]
             if string_type == StringDelimiters.NORMAL:
-                if vy_globals.raw_strings:
+                if CTX.raw_strings:
                     value = string.replace("\\", "\\\\").replace('"', '\\"')
-                    compiled += f'vy_globals.stack.append("{value}")'
+                    compiled += f'CTX.stack.append("{value}")'
                 else:
                     value = string.replace("\\", "\\\\").replace('"', '\\"')
-                    compiled += (
-                        f'vy_globals.stack.append("{utilities.uncompress(value)}")'
-                    )
+                    compiled += f'CTX.stack.append("{utilities.uncompress(value)}")'
             elif string_type == StringDelimiters.COM_NUMBER:
                 number = utilities.to_ten(string, encoding.codepage_number_compress)
-                compiled += f"vy_globals.stack.append({number})"
+                compiled += f"CTX.stack.append({number})"
             elif string_type == StringDelimiters.COM_STRING:
                 value = utilities.to_ten(string, encoding.codepage_string_compress)
                 value = utilities.from_ten(value, utilities.base27alphabet)
-                compiled += f"vy_globals.stack.append('{value}')"
+                compiled += f"CTX.stack.append('{value}')"
         elif token_name == Structure.CHARACTER:
-            compiled += f"vy_globals.stack.append({repr(token[1])})"
+            compiled += f"CTX.stack.append({repr(token[1])})"
         elif token_name == Structure.IF:
-            compiled += "temp_value = pop(vy_globals.stack)\n"
+            compiled += "temp_value = pop(CTX.stack)\n"
             compiled += (
                 "if temp_value:\n"
                 + tab(vy_compile(token_value[Keys.IF_TRUE]))
@@ -111,25 +112,22 @@ def vy_compile(program, header=""):
             if Keys.FOR_VAR in token_value:
                 loop_variable = "VAR_" + strip_non_alphabet(token_value[Keys.FOR_VAR])
             compiled += (
-                "for "
-                + loop_variable
-                + " in vy_range(pop(vy_globals.stack)):"
-                + NEWLINE
+                "for " + loop_variable + " in vy_range(pop(CTX.stack)):" + NEWLINE
             )
-            compiled += tab("vy_globals.context_level += 1") + NEWLINE
+            compiled += tab("CTX.context_level += 1") + NEWLINE
             compiled += (
-                tab("vy_globals.context_values.append(" + loop_variable + ")") + NEWLINE
+                tab("CTX.context_values.append(" + loop_variable + ")") + NEWLINE
             )
             compiled += tab(vy_compile(token_value[Keys.FOR_BODY])) + NEWLINE
-            compiled += tab("vy_globals.context_level -= 1") + NEWLINE
-            compiled += tab("vy_globals.context_values.pop()")
+            compiled += tab("CTX.context_level -= 1") + NEWLINE
+            compiled += tab("CTX.context_values.pop()")
         elif token_name == Structure.WHILE:
-            condition = "vy_globals.stack.append(1)"
+            condition = "CTX.stack.append(1)"
             if Keys.WHILE_COND in token_value:
                 condition = vy_compile(token_value[Keys.WHILE_COND])
 
             compiled += condition + NEWLINE
-            compiled += "while pop(vy_globals.stack):\n"
+            compiled += "while pop(CTX.stack):\n"
             compiled += tab(vy_compile(token_value[Keys.WHILE_BODY])) + NEWLINE
             compiled += tab(condition)
         elif token_name == Structure.FUNCTION:
@@ -137,9 +135,7 @@ def vy_compile(program, header=""):
             if Keys.FUNC_BODY not in token_value:
                 # Function call
                 compiled += (
-                    "vy_globals.stack += FN_"
-                    + token_value[Keys.FUNC_NAME]
-                    + "(vy_globals.stack)"
+                    "CTX.stack += FN_" + token_value[Keys.FUNC_NAME] + "(CTX.stack)"
                 )
             else:
                 function_information = token_value[Keys.FUNC_NAME].split(":")
@@ -166,22 +162,20 @@ def vy_compile(program, header=""):
                 compiled += (
                     "def FN_" + function_name + "(parameter_stack, arity=None):\n"
                 )
-                compiled += tab("vy_globals.context_level += 1") + NEWLINE
-                compiled += tab("vy_globals.input_level += 1") + NEWLINE
+                compiled += tab("CTX.context_level += 1") + NEWLINE
+                compiled += tab("CTX.input_level += 1") + NEWLINE
                 compiled += tab(f"this_function = FN_{function_name}") + NEWLINE
                 if parameter_count == 1:
                     # There's only one parameter, so instead of pushing it as a list
                     # (which is kinda rather inconvienient), push it as a "scalar"
 
-                    compiled += tab(
-                        "vy_globals.context_values.append(parameter_stack[-1])"
-                    )
+                    compiled += tab("CTX.context_values.append(parameter_stack[-1])")
                 elif parameter_count != -1:
                     compiled += tab(
-                        f"vy_globals.context_values.append(parameter_stack[:-{parameter_count}])"
+                        f"CTX.context_values.append(parameter_stack[:-{parameter_count}])"
                     )
                 else:
-                    compiled += tab("vy_globals.context_values.append(parameter_stack)")
+                    compiled += tab("CTX.context_values.append(parameter_stack)")
 
                 compiled += NEWLINE
 
@@ -207,22 +201,17 @@ else:
                         compiled += tab("VAR_" + parameter + " = pop(parameter_stack)")
                     compiled += NEWLINE
 
-                compiled += tab("vy_globals.stack = parameters[::]") + NEWLINE
+                compiled += tab("CTX.stack = parameters[::]") + NEWLINE
                 compiled += (
-                    tab(
-                        "vy_globals.input_values[vy_globals.input_level] = [vy_globals.stack[::], 0]"
-                    )
+                    tab("CTX.input_values[CTX.input_level] = [CTX.stack[::], 0]")
                     + NEWLINE
                 )
                 compiled += tab(vy_compile(token_value[Keys.FUNC_BODY])) + NEWLINE
                 compiled += (
-                    tab(
-                        "vy_globals.context_level -= 1; vy_globals.context_values.pop()"
-                    )
-                    + NEWLINE
+                    tab("CTX.context_level -= 1; CTX.context_values.pop()") + NEWLINE
                 )
-                compiled += tab("vy_globals.input_level -= 1") + NEWLINE
-                compiled += tab("return vy_globals.stack")
+                compiled += tab("CTX.input_level -= 1") + NEWLINE
+                compiled += tab("return CTX.stack")
         elif token_name == Structure.LAMBDA:
             defined_arity = 1
             if Keys.LAMBDA_ARGS in token_value:
@@ -234,8 +223,8 @@ else:
                 f"def _lambda_{signature}(parameter_stack, arity=-1, self=None):"
                 + NEWLINE
             )
-            compiled += tab("vy_globals.context_level += 1") + NEWLINE
-            compiled += tab("vy_globals.input_level += 1") + NEWLINE
+            compiled += tab("CTX.context_level += 1") + NEWLINE
+            compiled += tab("CTX.input_level += 1") + NEWLINE
             compiled += tab(f"this_function = _lambda_{signature}") + NEWLINE
             compiled += tab("stored = False") + NEWLINE
             compiled += (
@@ -244,67 +233,63 @@ else:
             )
             compiled += (
                 tab(
-                    f"if arity != {defined_arity} and arity >= 0: parameters = pop(parameter_stack, arity, True); vy_globals.stack = parameters[::]"
+                    f"if arity != {defined_arity} and arity >= 0: parameters = pop(parameter_stack, arity, True); CTX.stack = parameters[::]"
                 )
                 + NEWLINE
             )
             compiled += (
                 tab(
-                    "elif stored: parameters = pop(parameter_stack, stored, True); vy_globals.stack = parameters[::]"
+                    "elif stored: parameters = pop(parameter_stack, stored, True); CTX.stack = parameters[::]"
                 )
                 + NEWLINE
             )
             if defined_arity == 1:
                 compiled += (
                     tab(
-                        "else: parameters = pop(parameter_stack); vy_globals.stack = [parameters]"
+                        "else: parameters = pop(parameter_stack); CTX.stack = [parameters]"
                     )
                     + NEWLINE
                 )
             else:
                 compiled += (
                     tab(
-                        f"else: parameters = pop(parameter_stack, {defined_arity}); vy_globals.stack = parameters[::]"
+                        f"else: parameters = pop(parameter_stack, {defined_arity}); CTX.stack = parameters[::]"
                     )
                     + NEWLINE
                 )
-            compiled += tab("vy_globals.context_values.append(parameters)") + NEWLINE
+            compiled += tab("CTX.context_values.append(parameters)") + NEWLINE
             compiled += (
-                tab(
-                    "vy_globals.input_values[vy_globals.input_level] = [vy_globals.stack[::], 0]"
-                )
-                + NEWLINE
+                tab("CTX.input_values[CTX.input_level] = [CTX.stack[::], 0]") + NEWLINE
             )
             compiled += tab(vy_compile(token_value[Keys.LAMBDA_BODY])) + NEWLINE
-            compiled += tab("ret = [pop(vy_globals.stack)]") + NEWLINE
+            compiled += tab("ret = [pop(CTX.stack)]") + NEWLINE
             compiled += (
-                tab("vy_globals.context_level -= 1; vy_globals.context_values.pop()")
-                + NEWLINE
+                tab("CTX.context_level -= 1; CTX.context_values.pop()") + NEWLINE
             )
-            compiled += tab("vy_globals.input_level -= 1") + NEWLINE
+            compiled += tab("CTX.input_level -= 1") + NEWLINE
             compiled += tab("return ret") + NEWLINE
             compiled += f"_lambda_{signature}.stored_arity = {defined_arity}" + NEWLINE
-            compiled += f"vy_globals.stack.append(_lambda_{signature})"
+            compiled += f"CTX.stack.append(_lambda_{signature})"
         elif token_name == Structure.LIST:
             compiled += "temp_list = []" + NEWLINE
             for element in token_value[Keys.LIST_ITEMS]:
                 if element:
                     compiled += "def list_lhs(parameter_stack):" + NEWLINE
-                    compiled += tab("vy_globals.stack = parameter_stack[::]") + NEWLINE
+                    compiled += tab("CTX.stack = parameter_stack[::]") + NEWLINE
                     compiled += tab(vy_compile(element)) + NEWLINE
-                    compiled += tab("return pop(vy_globals.stack)") + NEWLINE
-                    compiled += "temp_list.append(list_lhs(vy_globals.stack))" + NEWLINE
-            compiled += "vy_globals.stack.append(temp_list[::])"
+                    compiled += tab("return pop(CTX.stack)") + NEWLINE
+                    compiled += "temp_list.append(list_lhs(CTX.stack))" + NEWLINE
+            compiled += "CTX.stack.append(temp_list[::])"
         elif token_name == Structure.FUNC_REF:
-            compiled += f"vy_globals.stack.append(FN_{token_value[Keys.FUNC_NAME]})"
+            compiled += f"CTX.stack.append(FN_{token_value[Keys.FUNC_NAME]})"
         elif token_name == Structure.VAR_SET:
-            compiled += "VAR_" + token_value + " = pop(vy_globals.stack)"
+            compiled += "VAR_" + token_value + " = pop(CTX.stack)"
         elif token_name == Structure.VAR_GET:
-            compiled += "vy_globals.stack.append(VAR_" + token_value + ")"
+            compiled += "CTX.stack.append(VAR_" + token_value + ")"
         elif token_name == Structure.MONAD_TRANSFORMER:
             function_A = vy_compile(wrap_in_lambda(token_value[1]))
             compiled += function_A + NEWLINE
-            compiled += "function_A = pop(vy_globals.stack)\n"
+            compiled += "function_A = pop(CTX.stack)\n"
             compiled += transformers[token_value[0]] + NEWLINE
         elif token_name == Structure.DYAD_TRANSFORMER:
             if token_value[0] in Grouping_Transformers:
@@ -317,7 +302,7 @@ else:
                 function_A = vy_compile(wrap_in_lambda([token_value[1][0]]))
                 function_B = vy_compile(wrap_in_lambda([token_value[1][1]]))
                 compiled += function_A + NEWLINE + function_B + NEWLINE
-                compiled += "function_B = pop(vy_globals.stack); function_A = pop(vy_globals.stack)\n"
+                compiled += "function_B = pop(CTX.stack); function_A = pop(CTX.stack)\n"
                 compiled += transformers[token_value[0]] + NEWLINE
         elif token_name == Structure.TRIAD_TRANSFORMER:
             if token_value[0] in Grouping_Transformers:
@@ -332,7 +317,7 @@ else:
                 compiled += (
                     function_A + NEWLINE + function_B + NEWLINE + function_C + NEWLINE
                 )
-                compiled += "function_C = pop(vy_globals.stack); function_B = pop(vy_globals.stack); function_A = pop(vy_globals.stack)\n"
+                compiled += "function_C = pop(CTX.stack); function_B = pop(CTX.stack); function_A = pop(CTX.stack)\n"
                 compiled += transformers[token_value[0]] + NEWLINE
 
         compiled += "\n"
@@ -341,26 +326,26 @@ else:
 
 
 def execute(code, flags, input_list, output_variable):
-    vy_globals.online_version = True
-    vy_globals.output = output_variable
-    vy_globals.output[1] = ""
-    vy_globals.output[2] = ""
+    CTX.online_version = True
+    CTX.output = output_variable
+    CTX.output[1] = ""
+    CTX.output[2] = ""
     flags = flags
 
     if input_list:
         eval_function = vy_eval
         if "Ṡ" in flags:
             eval_function = str
-        vy_globals.inputs = list(map(eval_function, input_list.split("\n")))
+        CTX.inputs = list(map(eval_function, input_list.split("\n")))
 
     if "a" in flags:
-        vy_globals.inputs = vy_globals.inputs
+        CTX.inputs = CTX.inputs
 
     if flags:
-        vy_globals.set_globals(flags)
+        CTX.set_globals(flags)
 
         if "h" in flags:
-            vy_globals.output[
+            CTX.output[
                 1
             ] = """
 ALL flags should be used as is (no '-' prefix)
@@ -386,7 +371,7 @@ ALL flags should be used as is (no '-' prefix)
 \tG\tPrint the maximum item of the top of stack on end of execution
 \tg\tPrint the minimum item of the top of the stack on end of execution
 \tW\tPrint the entire stack on end of execution
-\tṠ\tTreat all vy_globals.inputs as strings (usually obtainable by wrapping in quotations)
+\tṠ\tTreat all CTX.inputs as strings (usually obtainable by wrapping in quotations)
 \tR\tTreat numbers as ranges if ever used as an iterable
 \tD\tTreat all strings as raw strings (don't decompress strings)
 \tṪ\tPrint the sum of the entire stack
@@ -400,11 +385,11 @@ ALL flags should be used as is (no '-' prefix)
 \t…\tTruncate lists at 100 items
 """
             return
-    vy_globals.input_values[0] = [vy_globals.inputs, 0]
+    CTX.input_values[0] = [CTX.inputs, 0]
     code = vy_compile(code, vyxal_imports)
-    vy_globals.context_level = 0
+    CTX.context_level = 0
     if flags and "c" in flags:
-        vy_globals.output[2] = code
+        CTX.output[2] = code
 
     try:
         print(code)
@@ -413,50 +398,48 @@ ALL flags should be used as is (no '-' prefix)
         if "o" not in flags:
             return
     except Exception as e:
-        vy_globals.output[2] += "\n" + str(e)
-        vy_globals.output[
+        CTX.output[2] += "\n" + str(e)
+        CTX.output[
             2
-        ] += f"\nMost recently popped arguments: {[deref(i, limit=10) for i in vy_globals.last_popped]}"
-        vy_globals.output[
-            2
-        ] += f"\nFinal stack: {[deref(i, limit=10) for i in vy_globals.stack]}"
+        ] += f"\nMost recently popped arguments: {[deref(i, limit=10) for i in CTX.last_popped]}"
+        CTX.output[2] += f"\nFinal stack: {[deref(i, limit=10) for i in CTX.stack]}"
         raise e
 
-    if (not vy_globals.printed and "O" not in flags) or "o" in flags:
+    if (not CTX.printed and "O" not in flags) or "o" in flags:
         if flags and "s" in flags:
-            vy_print(summate(pop(vy_globals.stack)))
+            vy_print(summate(pop(CTX.stack)))
         elif flags and "…" in flags:
-            top = pop(vy_globals.stack)
+            top = pop(CTX.stack)
             if vy_type(top) in (list, Generator):
                 vy_print(top[:100])
             else:
                 vy_print(top)
         elif flags and "ṡ" in flags:
-            vy_print(" ".join([vy_str(n) for n in vy_globals.stack]))
+            vy_print(" ".join([vy_str(n) for n in CTX.stack]))
         elif flags and "d" in flags:
-            vy_print(summate(flatten(pop(vy_globals.stack))))
+            vy_print(summate(flatten(pop(CTX.stack))))
         elif flags and "Ṫ" in flags:
-            vy_print(summate(vy_globals.stack))
+            vy_print(summate(CTX.stack))
         elif flags and "S" in flags:
-            vy_print(" ".join([vy_str(n) for n in pop(vy_globals.stack)]))
+            vy_print(" ".join([vy_str(n) for n in pop(CTX.stack)]))
         elif flags and "C" in flags:
-            vy_print("\n".join(centre([vy_str(n) for n in pop(vy_globals.stack)])))
+            vy_print("\n".join(centre([vy_str(n) for n in pop(CTX.stack)])))
         elif flags and "l" in flags:
-            vy_print(len(pop(vy_globals.stack)))
+            vy_print(len(pop(CTX.stack)))
         elif flags and "G" in flags:
-            vy_print(vy_max(pop(vy_globals.stack)))
+            vy_print(vy_max(pop(CTX.stack)))
         elif flags and "g" in flags:
-            vy_print(vy_min(pop(vy_globals.stack)))
+            vy_print(vy_min(pop(CTX.stack)))
         elif flags and "W" in flags:
-            vy_print(vy_globals.stack)
-        elif vy_globals._vertical_join:
-            vy_print(vertical_join(pop(vy_globals.stack)))
-        elif vy_globals._join:
-            vy_print("\n".join([vy_str(n) for n in pop(vy_globals.stack)]))
+            vy_print(CTX.stack)
+        elif CTX._vertical_join:
+            vy_print(vertical_join(pop(CTX.stack)))
+        elif CTX._join:
+            vy_print("\n".join([vy_str(n) for n in pop(CTX.stack)]))
         elif flags and "J" in flags:
-            vy_print("\n".join([vy_str(n) for n in vy_globals.stack]))
+            vy_print("\n".join([vy_str(n) for n in CTX.stack]))
         else:
-            vy_print(pop(vy_globals.stack))
+            vy_print(pop(CTX.stack))
 
 
 if __name__ == "__main__":
@@ -465,13 +448,13 @@ if __name__ == "__main__":
 
     file_location = ""
     flags = ""
-    vy_globals.inputs = []
+    CTX.inputs = []
     header = (
         inspect.cleandoc(
             """
-        vy_globals.stack = []
-        vy_globals.register = 0
-        vy_globals.printed = False"""
+        CTX.stack = []
+        CTX.register = 0
+        CTX.printed = False"""
         )
         + NEWLINE
     )
@@ -485,25 +468,23 @@ if __name__ == "__main__":
             if "Ṡ" in flags:
                 eval_function = str
             if "H" in flags:
-                vy_globals.stack = [100]
+                CTX.stack = [100]
             if "f" in flags:
-                vy_globals.inputs = list(
-                    map(eval_function, open(sys.argv[3]).readlines())
-                )
+                CTX.inputs = list(map(eval_function, open(sys.argv[3]).readlines()))
             else:
-                vy_globals.inputs = list(map(eval_function, sys.argv[3:]))
+                CTX.inputs = list(map(eval_function, sys.argv[3:]))
 
         if "a" in flags:
-            vy_globals.inputs = [vy_globals.inputs]
+            CTX.inputs = [CTX.inputs]
 
     if not file_location:  # repl mode
 
         while 1:
             line = input(">>> ")
-            vy_globals.context_level = 0
+            CTX.context_level = 0
             line = vy_compile(line, vyxal_imports + header)
             exec(line)
-            vy_print(vy_globals.stack)
+            vy_print(CTX.stack)
     elif file_location == "h":
         print(
             "\nUsage: python3 Vyxal.py <file> <flags (single string of flags)> <input(s) (if not from STDIN)>"
@@ -530,7 +511,7 @@ if __name__ == "__main__":
         print("\tG\tPrint the maximum item of the top of stack on end of execution")
         print("\tg\tPrint the minimum item of the top of the stack on end of execution")
         print("\tW\tPrint the entire stack on end of execution")
-        print("\tṠ\tTreat all vy_globals.inputs as strings")
+        print("\tṠ\tTreat all CTX.inputs as strings")
         print("\tR\tTreat numbers as ranges if ever used as an iterable")
         print("\tD\tTreat all strings as raw strings (don't decompress strings)")
         print("\tṪ\tPrint the sum of the entire stack")
@@ -541,54 +522,54 @@ if __name__ == "__main__":
         print("\t…\tTruncate lists at 100 items")
     else:
         if flags:
-            vy_globals.set_globals(flags)
+            CTX.set_globals(flags)
 
         # Encoding method thanks to Adnan (taken from the old 05AB1E interpreter)
-        if vy_globals.use_encoding:
+        if CTX.use_encoding:
             import vyxal.encoding
 
             code = open(file_location, "rb").read()
             code = vyxal.encoding.vyxal_to_utf8(code)
         else:
             code = open(file_location, "r", encoding="utf-8").read()
-        vy_globals.input_values[0] = [vy_globals.inputs, 0]
+        CTX.input_values[0] = [CTX.inputs, 0]
         code = vy_compile(code, vyxal_imports + header)
-        vy_globals.context_level = 0
+        CTX.context_level = 0
         if flags and "c" in flags:
             print(code)
         exec(code)
-        if (not vy_globals.printed and "O" not in flags) or "o" in flags:
+        if (not CTX.printed and "O" not in flags) or "o" in flags:
             if flags and "s" in flags:
-                print(summate(pop(vy_globals.stack)))
+                print(summate(pop(CTX.stack)))
             elif flags and "…":
-                top = pop(vy_globals.stack)
+                top = pop(CTX.stack)
                 if vy_type(top) in (list, Generator):
                     print(top[:100])
                 else:
                     print(top)
             elif flags and "ṡ" in flags:
-                print(" ".join([vy_str(n) for n in vy_globals.stack]))
+                print(" ".join([vy_str(n) for n in CTX.stack]))
             elif flags and "d" in flags:
-                print(summate(flatten(pop(vy_globals.stack))))
+                print(summate(flatten(pop(CTX.stack))))
             elif flags and "Ṫ" in flags:
-                vy_print(summate(vy_globals.stack))
+                vy_print(summate(CTX.stack))
             elif flags and "S" in flags:
-                print(" ".join([vy_str(n) for n in pop(vy_globals.stack)]))
+                print(" ".join([vy_str(n) for n in pop(CTX.stack)]))
             elif flags and "C" in flags:
-                print("\n".join(centre([vy_str(n) for n in pop(vy_globals.stack)])))
+                print("\n".join(centre([vy_str(n) for n in pop(CTX.stack)])))
             elif flags and "l" in flags:
-                print(len(pop(vy_globals.stack)))
+                print(len(pop(CTX.stack)))
             elif flags and "G" in flags:
-                print(vy_max(pop(vy_globals.stack)))
+                print(vy_max(pop(CTX.stack)))
             elif flags and "g" in flags:
-                print(vy_min(pop(vy_globals.stack)))
+                print(vy_min(pop(CTX.stack)))
             elif flags and "W" in flags:
-                print(vy_str(vy_globals.stack))
-            elif vy_globals._vertical_join:
-                print(vertical_join(pop(vy_globals.stack)))
-            elif vy_globals._join:
-                print("\n".join([vy_str(n) for n in pop(vy_globals.stack)]))
+                print(vy_str(CTX.stack))
+            elif CTX._vertical_join:
+                print(vertical_join(pop(CTX.stack)))
+            elif CTX._join:
+                print("\n".join([vy_str(n) for n in pop(CTX.stack)]))
             elif flags and "J" in flags:
-                print("\n".join([vy_str(n) for n in vy_globals.stack]))
+                print("\n".join([vy_str(n) for n in CTX.stack]))
             else:
-                vy_print(pop(vy_globals.stack))
+                vy_print(pop(CTX.stack))

@@ -14,7 +14,7 @@ def test_generators():
         stack = run_code(code, flags=["O"])
         assert deref(pop(stack)) == expected
 
-
+'''
 def test_vectorise():
     test_cases = [([[1, 2, 3, 4], [5, 6, 2], [0], [[1, 2], 3]], "h", [1, 5, 0, [1, 2]])]
 
@@ -174,7 +174,7 @@ def test_eval():
     vyxal.builtins.vy_print = set_res
     run_code("`1 2 3 4 5 6 W ∑,`Ė", flags=["D"])
     assert res == 21
-
+'''
 
 """
 def test_foldl_rows():

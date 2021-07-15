@@ -5,8 +5,8 @@ from multiprocessing import Manager
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__)) + "/.."
 sys.path.insert(1, THIS_FOLDER)
 
+from vyxal.vy_globals import CTX
 from vyxal import interpreter as interp
-from vyxal import vy_globals
 
 header = "stack = []\nregister = 0\nprinted = False\n"
 manager = Manager()
@@ -15,42 +15,42 @@ manager = Manager()
 def run_code(code, flags="", input_list=[], output_variable=manager.dict()):
     reset_globals()
     interp.execute(code, flags, "\n".join(map(str, input_list)), output_variable)
-    return vy_globals.stack
+    return CTX.stack
 
 
 def reset_globals():
-    vy_globals.stack = []
+    CTX.stack = []
     interp.stack = []
-    vy_globals.context_level = 0
-    vy_globals.context_values = [0]
-    vy_globals.global_stack = []
-    vy_globals.input_level = 0
-    vy_globals.inputs = []
-    vy_globals.input_values = {
-        0: [vy_globals.inputs, 0]
+    CTX.context_level = 0
+    CTX.context_values = [0]
+    CTX.global_stack = []
+    CTX.input_level = 0
+    CTX.inputs = []
+    CTX.input_values = {
+        0: [CTX.inputs, 0]
     }  # input_level: [source, input_index]
-    vy_globals.last_popped = []
-    vy_globals.keg_mode = False
-    vy_globals.number_iterable = list
-    vy_globals.raw_strings = False
-    vy_globals.online_version = False
-    vy_globals.output = ""
-    vy_globals.printed = False
-    vy_globals.register = 0
-    vy_globals.retain_items = False
-    vy_globals.reverse_args = False
-    vy_globals.safe_mode = (
+    CTX.last_popped = []
+    CTX.keg_mode = False
+    CTX.number_iterable = list
+    CTX.raw_strings = False
+    CTX.online_version = False
+    CTX.output = ""
+    CTX.printed = False
+    CTX.register = 0
+    CTX.retain_items = False
+    CTX.reverse_args = False
+    CTX.safe_mode = (
         False  # You may want to have safe evaluation but not be online.
     )
-    vy_globals.stack = []
-    vy_globals.variables_are_digraphs = False
+    CTX.stack = []
+    CTX.variables_are_digraphs = False
 
-    vy_globals.MAP_START = 1
-    vy_globals.MAP_OFFSET = 1
-    vy_globals._join = False
-    vy_globals._vertical_join = False
-    vy_globals.use_encoding = False
-    vy_globals.set_globals("")
+    CTX.MAP_START = 1
+    CTX.MAP_OFFSET = 1
+    CTX._join = False
+    CTX._vertical_join = False
+    CTX.use_encoding = False
+    CTX.set_globals("")
 
 
 def reshape(arr, shape):

@@ -29,6 +29,16 @@ except:
     import sympy
 
 
+def tapp(x):
+    typ = vy_type(x)
+    if typ is Generator:
+        print(x[:5])
+    else:
+        print(x)
+
+    print(CTX.stack)
+    return x
+
 def add(lhs, rhs):
     """
     Returns lhs + rhs. Check command docs for type cohesion.
@@ -62,13 +72,13 @@ def all_prime_factors(item):
 
 
 def apply_to_register(function, vector):
-    vector.append(vy_globals.register)
+    vector.append(CTX.register)
     if function.stored_arity > 1:
-        top, over = pop(vy_globals.stack, 2)
-        vy_globals.stack.append(top)
-        vy_globals.stack.append(over)
+        top, over = pop(CTX.stack, 2)
+        CTX.stack.append(top)
+        CTX.stack.append(over)
     vector += function_call(function, vector)
-    vy_globals.register = pop(vector)
+    CTX.register = pop(vector)
 
 
 def assigned(vector, index, item):
@@ -409,10 +419,10 @@ def dont_pop(function, vector):
     if function.stored_arity == 1:
         vector.append(vy_filter(function, pop(vector)))
     else:
-        vy_globals.retain_items = True
+        CTX.retain_items = True
         args = pop(vector, function.stored_arity)
         vector.append(safe_apply(function, args[::-1]))
-        vy_globals.retain_items = False
+        CTX.retain_items = False
 
 
 def escape(item):
@@ -626,25 +636,25 @@ def gcd(lhs, rhs=None):
 
 
 def get_input(predefined_level=None):
-    level = vy_globals.input_level
+    level = CTX.input_level
     if predefined_level is not None:
         level = predefined_level
 
-    if level in vy_globals.input_values:
-        source, index = vy_globals.input_values[level]
+    if level in CTX.input_values:
+        source, index = CTX.input_values[level]
     else:
         source, index = [], -1
     if source:
         ret = source[index % len(source)]
-        vy_globals.input_values[level][1] += 1
+        CTX.input_values[level][1] += 1
 
-        if vy_globals.keg_mode and type(ret) is str:
+        if CTX.keg_mode and type(ret) is str:
             return [ord(c) for c in ret]
         return ret
     else:
         try:
             temp = vy_eval(input())
-            if vy_globals.keg_mode and type(temp) is str:
+            if CTX.keg_mode and type(temp) is str:
                 return [ord(c) for c in temp]
             return temp
         except:
@@ -1064,7 +1074,7 @@ def para_apply(fn_A, fn_B, vector):
     args_B = pop(temp, fn_B.stored_arity, True)
     vector.append(fn_A(args_A)[-1])
     vector.append(fn_B(args_B)[-1])
-    vy_globals.stack = vector
+    CTX.stack = vector
 
 
 def pluralise(lhs, rhs):
@@ -1092,14 +1102,14 @@ def pop(vector, num=1, wrap=False):
             x = get_input()
             ret.append(x)
 
-    if vy_globals.retain_items:
+    if CTX.retain_items:
         vector += ret[::-1]
 
-    vy_globals.last_popped = ret
+    CTX.last_popped = ret
     if num == 1 and not wrap:
         return ret[0]
 
-    if vy_globals.reverse_args:
+    if CTX.reverse_args:
         return ret[::-1]
     return ret
 
@@ -1196,18 +1206,18 @@ def repeat(vector, times, extra=None):
         if t_vector is str:
             return vector[::-1] * times
         elif t_vector is Number:
-            vy_globals.safe_mode = True
+            CTX.safe_mode = True
             temp = vy_eval(str(reverse(vector)) * times)
-            vy_globals.safe_mode = False
+            CTX.safe_mode = False
             return temp
         return Generator(itertools.repeat(reversed(vector), times))
     else:
         if t_vector is str:
             return vector * times
         elif t_vector is Number:
-            vy_globals.safe_mode = True
+            CTX.safe_mode = True
             temp = vy_eval(str(reverse(vector)) * times)
-            vy_globals.safe_mode = False
+            CTX.safe_mode = False
             return temp
         return Generator(itertools.repeat(vector, times))
 
@@ -1660,14 +1670,14 @@ def vy_eval(item):
     elif vy_type(item) in [list, Generator]:
         return vectorise(vy_eval, item)
 
-    if vy_globals.online_version or vy_globals.safe_mode:
+    if CTX.online_version or CTX.safe_mode:
         from vyxal.interpreter import vy_compile
         from vyxal.parser import Structure, Tokenise
 
         try:
             return pwn.safeeval.const(item)
         except:
-            f = Tokenise(item, vy_globals.variables_are_digraphs)
+            f = Tokenise(item, CTX.variables_are_digraphs)
             if len(f) and f[-1][-1] in (
                 Structure.STRING,
                 Structure.NUMBER,
@@ -1675,9 +1685,9 @@ def vy_eval(item):
             ):
                 try:
                     temp = vy_compile(item, vyxal_imports)
-                    vy_globals.stack = []
+                    CTX.stack = []
                     exec(temp)
-                    return vy_globals.stack[-1]
+                    return CTX.stack[-1]
                 except Exception as e:
                     print(e)
                     return item
@@ -1762,7 +1772,7 @@ def vy_map(fn, vector):
 
     vec, function = (fn, vector) if t_vector is Function else (vector, fn)
     if vy_type(vec) == Number:
-        vec = range(vy_globals.MAP_START, int(vec) + vy_globals.MAP_OFFSET)
+        vec = range(CTX.MAP_START, int(vec) + CTX.MAP_OFFSET)
 
     if vy_type(vec) is Generator:
 
@@ -1845,7 +1855,7 @@ def vy_oct(item):
 
 
 def vy_print(item, end="\n", raw=False):
-    vy_globals.printed = True
+    CTX.printed = True
     t_item = type(item)
     if t_item is Generator:
         item._print(end)
@@ -1858,23 +1868,23 @@ def vy_print(item, end="\n", raw=False):
             vy_print(item[-1], "", True)
         vy_print("⟩", end, False)
     elif t_item is Function:
-        s = function_call(item, vy_globals.stack)
+        s = function_call(item, CTX.stack)
         vy_print(s[0], end=end, raw=raw)
     else:
-        if t_item is int and vy_globals.keg_mode:
+        if t_item is int and CTX.keg_mode:
             item = chr(item)
         if raw:
-            if vy_globals.online_version:
-                vy_globals.output[1] += vy_repr(item) + end
+            if CTX.online_version:
+                CTX.output[1] += vy_repr(item) + end
             else:
                 print(vy_repr(item), end=end)
         else:
-            if vy_globals.online_version:
-                vy_globals.output[1] += vy_str(item) + end
+            if CTX.online_version:
+                CTX.output[1] += vy_str(item) + end
             else:
                 print(vy_str(item), end=end)
-    if vy_globals.online_version and len(vy_globals.output[1]) > 128000:
-        vy_globals.output[
+    if CTX.online_version and len(CTX.output[1]) > 128000:
+        CTX.output[
             2
         ] = "Program terminated after reaching the maximum character limit for output."
         sys.exit(1)
@@ -1897,7 +1907,7 @@ def vy_reduce(fn, vector):
     if t_type is Generator:
         return [vector._reduce(fn)]
     if t_type is Number:
-        vector = list(range(vy_globals.MAP_START, int(vector) + vy_globals.MAP_OFFSET))
+        vector = list(range(CTX.MAP_START, int(vector) + CTX.MAP_OFFSET))
     vector = vector[::-1]
     working_value = pop(vector)
     vector = vector[::-1]
@@ -1942,7 +1952,7 @@ def vy_str(item):
         str: lambda x: x,
         list: lambda x: "⟨" + "|".join([vy_repr(y) for y in x]) + "⟩",
         Generator: lambda x: vy_str(x._dereference()),
-        Function: lambda x: vy_str(function_call(x, vy_globals.stack)[0]),
+        Function: lambda x: vy_str(function_call(x, CTX.stack)[0]),
     }[t_item](item)
 
 

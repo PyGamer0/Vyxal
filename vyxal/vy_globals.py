@@ -6,69 +6,78 @@ import sys
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__)) + "/.."
 sys.path.insert(1, THIS_FOLDER)
 
-# Execution variables
-context_level = 0
-context_values = [0]
-global_stack = []
-input_level = 0
-inputs = []
-input_values = {0: [inputs, 0]}  # input_level: [source, input_index]
-last_popped = []
-keg_mode = False
-number_iterable = list
-raw_strings = False
-online_version = False
-output = ""
-printed = False
-register = 0
-retain_items = False
-reverse_args = False
-safe_mode = False  # You may want to have safe evaluation but not be online.
-stack = []
-variables_are_digraphs = False
 
-MAP_START = 1
-MAP_OFFSET = 1
-_join = False
-_vertical_join = False
-use_encoding = False
+class Context:
+    """An instance of this class holds execution variables set by flags"""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        """Reset all variables"""
+        self.context_level = 0
+        self.context_values = [0]
+        self.global_stack = []
+        self.input_level = 0
+        self.inputs = []
+        self.input_values = {0: [self.inputs, 0]}  # input_level: [source, input_index]
+        self.last_popped = []
+        self.keg_mode = False
+        self.number_iterable = list
+        self.raw_strings = False
+        self.online_version = False
+        self.output = ""
+        self.printed = False
+        self.register = 0
+        self.retain_items = False
+        self.reverse_args = False
+        self.safe_mode = (
+            False  # You may want to have safe evaluation but not be online.
+        )
+        self.stack = []
+        self.variables_are_digraphs = False
+
+        self.MAP_START = 1
+        self.MAP_OFFSET = 1
+        self._join = False
+        self._vertical_join = False
+        self.use_encoding = False
+
+    def this_function(self, x):
+        from vyxal.builtins import vy_print
+
+        vy_print(self.stack)
+        return x
+
+    def set_globals(self, flags):
+        """Set globals according to given flags"""
+        if "H" in flags:
+            self.stack = [100]
+
+        if "a" in flags:
+            self.inputs = [self.inputs]
+
+        if "M" in flags:
+            self.MAP_START = 0
+
+        if "m" in flags:
+            self.MAP_OFFSET = 0
+
+        if "Ṁ" in flags:
+            self.MAP_START = 0
+            self.MAP_OFFSET = 0
+
+        if "R" in flags:
+            self.number_iterable = range
+
+        self._join = "j" in flags
+        self._vertical_join = "L" in flags
+        self.use_encoding = "v" in flags
+        self.reverse_args = "r" in flags
+        self.keg_mode = "K" in flags
+        self.safe_mode = "E" in flags
+        self.raw_strings = "D" in flags
 
 
-def this_function(x):
-    from vyxal.builtins import vy_print
-
-    vy_print(stack)
-    return x
-
-
-def set_globals(flags):
-    global stack, inputs, MAP_START, MAP_OFFSET, _join
-    global _vertical_join, use_encoding, reverse_args, keg_mode, safe_mode
-    global number_iterable, raw_strings
-
-    if "H" in flags:
-        stack = [100]
-
-    if "a" in flags:
-        inputs = [inputs]
-
-    if "M" in flags:
-        MAP_START = 0
-
-    if "m" in flags:
-        MAP_OFFSET = 0
-
-    if "Ṁ" in flags:
-        MAP_START = 0
-        MAP_OFFSET = 0
-
-    if "R" in flags:
-        number_iterable = range
-
-    _join = "j" in flags
-    _vertical_join = "L" in flags
-    use_encoding = "v" in flags
-    reverse_args = "r" in flags
-    keg_mode = "K" in flags
-    safe_mode = "E" in flags
-    raw_strings = "D" in flags
+# The global context
+CTX = Context()

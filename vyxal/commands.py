@@ -48,10 +48,11 @@ def make_cmd(
     else:
         fn_call = to_fn_call(var_names)
     if arity > 0:
-        cmd = f"{', '.join(var_names[::-1])} = pop(vy_globals.stack, {arity});"
+        cmd = f"{', '.join(var_names[::-1])} = pop(CTX.stack, {arity});"
     else:
         cmd = ""
-    cmd += f"res = {fn_call}; vy_globals.stack.append(res);"
+    # cmd += f"res = {fn_call}; CTX.stack.append(res);"
+    cmd += f"CTX.stack.append(tapp({fn_call}));"
     return cmd, arity
 
 
@@ -73,12 +74,12 @@ command_dict = {
     "∨": make_cmd("{} or {}", 2),
     "⟇": make_cmd("{1} or {0}", 2),
     "÷": (
-        "for item in iterable(pop(vy_globals.stack)): vy_globals.stack.append(item)",
+        "for item in iterable(pop(CTX.stack)): CTX.stack.append(item)",
         1,
     ),
     "•": fn_to_cmd(log, 2),
     "†": (
-        "fn = pop(vy_globals.stack); vy_globals.stack += function_call(fn, vy_globals.stack)",
+        "fn = pop(CTX.stack); CTX.stack += function_call(fn, CTX.stack)",
         1,
     ),
     "€": fn_to_cmd(split, 2),
@@ -87,39 +88,39 @@ command_dict = {
     "⌐": fn_to_cmd(complement, 1),
     "æ": fn_to_cmd(is_prime, 1),
     "ʀ": (
-        "vy_globals.stack.append(orderless_range(0, add(pop(vy_globals.stack), 1)))",
+        "CTX.stack.append(orderless_range(0, add(pop(CTX.stack), 1)))",
         1,
     ),
     "ʁ": make_cmd("orderless_range(0, {})", 1),
     "ɾ": (
-        "vy_globals.stack.append(orderless_range(1, add(pop(vy_globals.stack), 1)))",
+        "CTX.stack.append(orderless_range(1, add(pop(CTX.stack), 1)))",
         1,
     ),
     "ɽ": make_cmd("orderless_range(1, {})", 1),
     "ƈ": fn_to_cmd(ncr, 2),
     "∞": make_cmd("non_negative_integers()", 0),
-    "!": make_cmd("len(vy_globals.stack)", 0),
+    "!": make_cmd("len(CTX.stack)", 0),
     '"': make_cmd("[{}, {}]", 2),
     "$": (
-        "top, over = pop(vy_globals.stack, 2);"
-        "vy_globals.stack.append(top);"
-        "vy_globals.stack.append(over)",
+        "top, over = pop(CTX.stack, 2);"
+        "CTX.stack.append(top);"
+        "CTX.stack.append(over)",
         2,
     ),
     "%": fn_to_cmd(modulo, 2),
     "*": fn_to_cmd(multiply, 2),
     "+": fn_to_cmd(add, 2),
-    ",": ("vy_print(pop(vy_globals.stack))", 1),
+    ",": ("vy_print(pop(CTX.stack))", 1),
     "-": fn_to_cmd(subtract, 2),
     "/": fn_to_cmd(divide, 2),
     ":": (
-        "temp = pop(vy_globals.stack);"
-        "vy_globals.stack.append(temp);"
-        "vy_globals.stack.append(deref(temp))",
+        "temp = pop(CTX.stack);"
+        "CTX.stack.append(temp);"
+        "CTX.stack.append(deref(temp))",
         1,
     ),
-    "^": ("vy_globals.stack = vy_globals.stack[::-1]", 0),
-    "_": ("pop(vy_globals.stack)", 1),
+    "^": ("CTX.stack = CTX.stack[::-1]", 0),
+    "_": ("pop(CTX.stack)", 1),
     "<": make_cmd("compare({}, {}, Comparitors.LESS_THAN)", 2),
     ">": make_cmd("compare({}, {}, Comparitors.GREATER_THAN)", 2),
     "=": make_cmd("compare({}, {}, Comparitors.EQUALS)", 2),
@@ -128,10 +129,10 @@ command_dict = {
     "B": make_cmd("vy_int({}, 2)", 1),
     "C": fn_to_cmd(chrord, 1),
     "D": (
-        "temp = pop(vy_globals.stack);"
-        "vy_globals.stack.append(temp);"
-        "vy_globals.stack.append(deref(temp));"
-        "vy_globals.stack.append(deref(vy_globals.stack[-1]))",
+        "temp = pop(CTX.stack);"
+        "CTX.stack.append(temp);"
+        "CTX.stack.append(deref(temp));"
+        "CTX.stack.append(deref(CTX.stack[-1]))",
         1,
     ),
     "E": fn_to_cmd(vy_eval, 1),
@@ -142,39 +143,36 @@ command_dict = {
     "J": fn_to_cmd(join, 2),
     "K": fn_to_cmd(divisors_of, 1),
     "L": make_cmd("len(iterable({}))", 1),
-    "M": (
-        "fn, vector = pop(vy_globals.stack, 2); temp = vy_map(fn, vector); vy_globals.stack.append(temp)",
-        2,
-    ),
+    "M": fn_to_cmd(vy_map, 2),
     "N": fn_to_cmd(negate, 1),
     "O": make_cmd("iterable({}).count({})", 2),
     "P": make_cmd("vy_str({}).strip(vy_str({}))", 2),
     "Q": ("exit()", 0),
     "R": (
-        "fn, vector = pop(vy_globals.stack, 2); vy_globals.stack += vy_reduce(fn, vector)",
+        "fn, vector = pop(CTX.stack, 2); CTX.stack += vy_reduce(fn, vector)",
         2,
     ),
     "S": fn_to_cmd(vy_str, 1),
     "T": (
-        "vy_globals.stack.append([i for (i, x) in enumerate(pop(vy_globals.stack)) if bool(x)])",
+        "CTX.stack.append([i for (i, x) in enumerate(pop(CTX.stack)) if bool(x)])",
         1,
     ),
     "U": make_cmd("Generator(uniquify({}))", 1),
     "V": fn_to_cmd(replace, 3),
-    "W": ("vy_globals.stack = [deref(vy_globals.stack)]; print(vy_globals.stack)", 0),
-    "X": ("vy_globals.context_level += 1", 0),
+    "W": ("CTX.stack = [deref(CTX.stack)]; print(CTX.stack)", 0),
+    "X": ("CTX.context_level += 1", 0),
     "Y": fn_to_cmd(interleave, 2),
     "Z": make_cmd(
         "Generator(vy_zip(iterable({}), iterable({})))",
         2,
     ),
-    "a": ("vy_globals.stack.append(int(any(iterable(pop(vy_globals.stack)))))", 1),
+    "a": ("CTX.stack.append(int(any(iterable(pop(CTX.stack)))))", 1),
     "b": fn_to_cmd(vy_bin, 1),
     "c": (
-        "needle, haystack = pop(vy_globals.stack, 2);"
+        "needle, haystack = pop(CTX.stack, 2);"
         "haystack = iterable(haystack, str)\n"
         "if type(haystack) is str: needle = vy_str(needle)\n"
-        "vy_globals.stack.append(int(needle in iterable(haystack, str)))",
+        "CTX.stack.append(int(needle in iterable(haystack, str)))",
         2,
     ),
     "d": make_cmd("multiply({}, 2)", 1),
@@ -187,7 +185,7 @@ command_dict = {
     "l": fn_to_cmd(nwise_pair, 2),
     "m": fn_to_cmd(mirror, 1),
     "n": make_cmd(
-        "vy_globals.context_values[vy_globals.context_level % len(vy_globals.context_values)]",
+        "CTX.context_values[CTX.context_level % len(CTX.context_values)]",
         0,
     ),
     "o": fn_to_cmd(remove, 2),
@@ -198,10 +196,10 @@ command_dict = {
     "t": make_cmd("iterable({})[-1]", 1),
     "u": make_cmd("-1", 0),
     "w": make_cmd("[{}]", 1),
-    "x": ("vy_globals.stack += this_function(vy_globals.stack)", 0),
-    "y": ("vy_globals.stack += uninterleave(pop(vy_globals.stack))", 1),
+    "x": ("CTX.stack += this_function(CTX.stack)", 0),
+    "y": ("CTX.stack += uninterleave(pop(CTX.stack))", 1),
     "z": (
-        "fn, vector = pop(vy_globals.stack, 2); vy_globals.stack += vy_zipmap(fn, vector)",
+        "fn, vector = pop(CTX.stack, 2); CTX.stack += vy_zipmap(fn, vector)",
         2,
     ),
     "↑": make_cmd("max({}, key=lambda x: x[-1])", 1),
@@ -210,176 +208,176 @@ command_dict = {
     "∵": fn_to_cmd(vy_min, 2),
     "β": make_cmd("utilities.to_ten({}, {})", 2),
     "τ": make_cmd("utilities.from_ten({}, {})", 2),
-    "›": ("vy_globals.stack.append(add(pop(vy_globals.stack), 1))", 1),
-    "‹": ("vy_globals.stack.append(subtract(pop(vy_globals.stack), 1))", 1),
-    "∷": ("vy_globals.stack.append(modulo(pop(vy_globals.stack), 2))", 1),
-    "¤": ("vy_globals.stack.append('')", 0),
-    "ð": ("vy_globals.stack.append(' ')", 0),
+    "›": ("CTX.stack.append(add(pop(CTX.stack), 1))", 1),
+    "‹": ("CTX.stack.append(subtract(pop(CTX.stack), 1))", 1),
+    "∷": ("CTX.stack.append(modulo(pop(CTX.stack), 2))", 1),
+    "¤": ("CTX.stack.append('')", 0),
+    "ð": ("CTX.stack.append(' ')", 0),
     "ȧ": fn_to_cmd(vy_abs, 1),
     "ḃ": (
-        "vy_globals.stack.append(int(not compare(pop(vy_globals.stack), 0, Comparitors.EQUALS)))",
+        "CTX.stack.append(int(not compare(pop(CTX.stack), 0, Comparitors.EQUALS)))",
         1,
     ),
     "ċ": (
-        "vy_globals.stack.append(compare(pop(vy_globals.stack), 1, Comparitors.NOT_EQUALS))",
+        "CTX.stack.append(compare(pop(CTX.stack), 1, Comparitors.NOT_EQUALS))",
         1,
     ),
     "ḋ": fn_to_cmd(
         vy_divmod, 2
     ),  # Dereference because generators could accidentally get exhausted.
     "ė": (
-        "vy_globals.stack.append(Generator(enumerate(iterable(pop(vy_globals.stack)))))",
+        "CTX.stack.append(Generator(enumerate(iterable(pop(CTX.stack)))))",
         1,
     ),
     "ḟ": fn_to_cmd(find, 2),
     "ġ": (
-        "rhs = pop(vy_globals.stack)\nif vy_type(rhs) in [list, Generator]: vy_globals.stack.append(gcd(rhs))\nelse: vy_globals.stack.append(gcd(pop(vy_globals.stack), rhs))",
+        "rhs = pop(CTX.stack)\nif vy_type(rhs) in [list, Generator]: CTX.stack.append(gcd(rhs))\nelse: CTX.stack.append(gcd(pop(CTX.stack), rhs))",
         2,
     ),
     "ḣ": (
-        "top = iterable(pop(vy_globals.stack)); vy_globals.stack.append(top[0]); vy_globals.stack.append(top[1:])",
+        "top = iterable(pop(CTX.stack)); CTX.stack.append(top[0]); CTX.stack.append(top[1:])",
         1,
     ),
     "ḭ": fn_to_cmd(integer_divide, 2),
     "ŀ": (
-        "start, needle, haystack = pop(vy_globals.stack, 3); vy_globals.stack.append(find(haystack, needle, start))",
+        "start, needle, haystack = pop(CTX.stack, 3); CTX.stack.append(find(haystack, needle, start))",
         3,
     ),
     "ṁ": (
-        "top = iterable(pop(vy_globals.stack)); vy_globals.stack.append(divide(summate(top), len(top)))",
+        "top = iterable(pop(CTX.stack)); CTX.stack.append(divide(summate(top), len(top)))",
         1,
     ),
     "ṅ": fn_to_cmd(first_n, 1),
     "ȯ": fn_to_cmd(first_n, 2),
-    "ṗ": ("vy_globals.stack.append(powerset(iterable(pop(vy_globals.stack))))", 1),
+    "ṗ": ("CTX.stack.append(powerset(iterable(pop(CTX.stack))))", 1),
     "ṙ": fn_to_cmd(vy_round, 1),
     "ṡ": (
-        "fn , vector = pop(vy_globals.stack, 2); vy_globals.stack.append(vy_sorted(vector, fn))",
+        "fn , vector = pop(CTX.stack, 2); CTX.stack.append(vy_sorted(vector, fn))",
         2,
     ),
     "ṫ": (
-        "vector = iterable(pop(vy_globals.stack)); vy_globals.stack.append(vector[:-1]); vy_globals.stack.append(vector[-1])",
+        "vector = iterable(pop(CTX.stack)); CTX.stack.append(vector[:-1]); CTX.stack.append(vector[-1])",
         1,
     ),
     "ẇ": fn_to_cmd(wrap, 2),
     "ẋ": (
-        "rhs, lhs = pop(vy_globals.stack, 2); main = None;\nif vy_type(lhs) is Function: main = pop(vy_globals.stack)\nvy_globals.stack.append(repeat(lhs, rhs, main))",
+        "rhs, lhs = pop(CTX.stack, 2); main = None;\nif vy_type(lhs) is Function: main = pop(CTX.stack)\nCTX.stack.append(repeat(lhs, rhs, main))",
         2,
     ),
     "ẏ": (
-        "obj = iterable(pop(vy_globals.stack)); vy_globals.stack.append(Generator(range(0, len(obj))))",
+        "obj = iterable(pop(CTX.stack)); CTX.stack.append(Generator(range(0, len(obj))))",
         1,
     ),
     "ż": (
-        "obj = iterable(pop(vy_globals.stack)); vy_globals.stack.append(Generator(range(1, len(obj) + 1)))",
+        "obj = iterable(pop(CTX.stack)); CTX.stack.append(Generator(range(1, len(obj) + 1)))",
         1,
     ),
-    "√": ("vy_globals.stack.append(exponate(pop(vy_globals.stack), 0.5))", 1),
-    "₀": ("vy_globals.stack.append(10)", 0),
-    "₁": ("vy_globals.stack.append(100)", 0),
+    "√": ("CTX.stack.append(exponate(pop(CTX.stack), 0.5))", 1),
+    "₀": ("CTX.stack.append(10)", 0),
+    "₁": ("CTX.stack.append(100)", 0),
     "₂": (
-        "vy_globals.stack.append(const_divisibility(pop(vy_globals.stack), 2, lambda item: len(item) % 2 == 0))",
+        "CTX.stack.append(const_divisibility(pop(CTX.stack), 2, lambda item: len(item) % 2 == 0))",
         1,
     ),
     "₃": (
-        "vy_globals.stack.append(const_divisibility(pop(vy_globals.stack), 3, lambda item: len(item) == 1))",
+        "CTX.stack.append(const_divisibility(pop(CTX.stack), 3, lambda item: len(item) == 1))",
         1,
     ),
-    "₄": ("vy_globals.stack.append(26)", 0),
+    "₄": ("CTX.stack.append(26)", 0),
     "₅": (
-        "top = pop(vy_globals.stack); res = const_divisibility(top, 5, lambda item: (top, len(item)))\nif type(res) is tuple: vy_globals.stack += list(res)\nelse: vy_globals.stack.append(res)",
+        "top = pop(CTX.stack); res = const_divisibility(top, 5, lambda item: (top, len(item)))\nif type(res) is tuple: CTX.stack += list(res)\nelse: CTX.stack.append(res)",
         1,
     ),
-    "₆": ("vy_globals.stack.append(64)", 0),
-    "₇": ("vy_globals.stack.append(128)", 0),
-    "₈": ("vy_globals.stack.append(256)", 0),
-    "¶": ("vy_globals.stack.append('\\n')", 0),
+    "₆": ("CTX.stack.append(64)", 0),
+    "₇": ("CTX.stack.append(128)", 0),
+    "₈": ("CTX.stack.append(256)", 0),
+    "¶": ("CTX.stack.append('\\n')", 0),
     "⁋": fn_to_cmd(osabie_newline_join, 1),
     "§": fn_to_cmd(vertical_join, 1),
     "ε": fn_to_cmd(vertical_join, 2),
     "¡": fn_to_cmd(factorial, 1),
     "∑": (
-        "temp = summate(pop(vy_globals.stack));vy_globals.stack.append(temp);print(vy_globals.stack);",
+        "temp = summate(pop(CTX.stack));CTX.stack.append(temp);print(CTX.stack);",
         1,
     ),
     "¦": (
-        "vy_globals.stack.append(cumulative_sum(iterable(pop(vy_globals.stack))))",
+        "CTX.stack.append(cumulative_sum(iterable(pop(CTX.stack))))",
         1,
     ),
     "≈": (
-        "vy_globals.stack.append(int(len(set(iterable(pop(vy_globals.stack)))) == 1))",
+        "CTX.stack.append(int(len(set(iterable(pop(CTX.stack)))) == 1))",
         1,
     ),
     "Ȧ": (
-        "value, lst_index, vector = pop(vy_globals.stack, 3); vy_globals.stack.append(assigned(iterable(vector), lst_index, value))",
+        "value, lst_index, vector = pop(CTX.stack, 3); CTX.stack.append(assigned(iterable(vector), lst_index, value))",
         3,
     ),
-    "Ḃ": ("vy_globals.stack += bifurcate(pop(vy_globals.stack))", 1),
+    "Ḃ": ("CTX.stack += bifurcate(pop(CTX.stack))", 1),
     "Ċ": fn_to_cmd(counts, 1),
     "Ḋ": (
-        "rhs, lhs = pop(vy_globals.stack, 2); ret = is_divisble(lhs, rhs)\nif type(ret) is tuple: vy_globals.stack += list(ret)\nelse: vy_globals.stack.append(ret)",
+        "rhs, lhs = pop(CTX.stack, 2); ret = is_divisble(lhs, rhs)\nif type(ret) is tuple: CTX.stack += list(ret)\nelse: CTX.stack.append(ret)",
         2,
     ),
-    "Ė": ("vy_globals.stack += vy_exec(pop(vy_globals.stack))", 1),
+    "Ė": ("CTX.stack += vy_exec(pop(CTX.stack))", 1),
     "Ḟ": (
-        """top = pop(vy_globals.stack)
+        """top = pop(CTX.stack)
 if vy_type(top) is Number:
-    limit = int(top); vector = pop(vy_globals.stack)
+    limit = int(top); vector = pop(CTX.stack)
 else:
     limit = -1; vector = top
-fn = pop(vy_globals.stack)
-vy_globals.stack.append(Generator(fn, limit=limit, initial=iterable(vector)))
+fn = pop(CTX.stack)
+CTX.stack.append(Generator(fn, limit=limit, initial=iterable(vector)))
 """,
         2,
     ),
     "Ġ": make_cmd("group_consecutive(iterable({}))", 1),
-    "Ḣ": ("vy_globals.stack.append(iterable(pop(vy_globals.stack))[1:])", 1),
+    "Ḣ": ("CTX.stack.append(iterable(pop(CTX.stack))[1:])", 1),
     "İ": fn_to_cmd(indexed_into, 2),
     "Ŀ": (
-        "new, original, value = pop(vy_globals.stack, 3)\nif Function in map(type, (new, original, value)): vy_globals.stack.append(repeat_no_collect(value, original, new))\nelse: vy_globals.stack.append(transliterate(iterable(original, str), iterable(new, str), iterable(value, str)))",
+        "new, original, value = pop(CTX.stack, 3)\nif Function in map(type, (new, original, value)): CTX.stack.append(repeat_no_collect(value, original, new))\nelse: CTX.stack.append(transliterate(iterable(original, str), iterable(new, str), iterable(value, str)))",
         3,
     ),
     "Ṁ": (
-        "item, index, vector = pop(vy_globals.stack, 3);\nif Function in map(type, (item, index, vector)): vy_globals.stack.append(map_every_n(vector, item, index))\nelse: vy_globals.stack.append(inserted(vector, item, index))",
+        "item, index, vector = pop(CTX.stack, 3);\nif Function in map(type, (item, index, vector)): CTX.stack.append(map_every_n(vector, item, index))\nelse: CTX.stack.append(inserted(vector, item, index))",
         3,
     ),
     "Ṅ": (
-        "top = pop(vy_globals.stack);\nif vy_type(top) == Number:vy_globals.stack.append(Generator(partition(top)))\nelse: vy_globals.stack.append(' '.join([vy_str(x) for x in top]))",
+        "top = pop(CTX.stack);\nif vy_type(top) == Number:CTX.stack.append(Generator(partition(top)))\nelse: CTX.stack.append(' '.join([vy_str(x) for x in top]))",
         1,
     ),  # ---------------------------
     "Ȯ": (
-        "if len(vy_globals.stack) >= 2: vy_globals.stack.append(vy_globals.stack[-2])\nelse: vy_globals.stack.append(get_input(0))",
+        "if len(CTX.stack) >= 2: CTX.stack.append(CTX.stack[-2])\nelse: CTX.stack.append(get_input(0))",
         0,
     ),
     "Ṗ": (
-        "vy_globals.stack.append(Generator(permutations(iterable(pop(vy_globals.stack)))))",
+        "CTX.stack.append(Generator(permutations(iterable(pop(CTX.stack)))))",
         1,
     ),
     "Ṙ": fn_to_cmd(reverse, 1),
-    "Ṡ": ("vy_globals.stack = [summate(vy_globals.stack)]", 0),
-    "Ṫ": ("vy_globals.stack.append(iterable(pop(vy_globals.stack), str)[:-1])", 1),
+    "Ṡ": ("CTX.stack = [summate(CTX.stack)]", 0),
+    "Ṫ": ("CTX.stack.append(iterable(pop(CTX.stack), str)[:-1])", 1),
     "Ẇ": make_cmd("split({}, {}, True)", 2),
     "Ẋ": fn_to_cmd(cartesian_product, 2),
     "Ẏ": make_cmd("one_argument_tail_index({}, {}, 0)", 2),
     "Ż": make_cmd("one_argument_tail_index({}, {}, 1)", 2),
-    "⁰": ("vy_globals.stack.append(vy_globals.input_values[0][0][-1])", 0),
-    "¹": ("vy_globals.stack.append(vy_globals.input_values[0][0][-2])", 0),
+    "⁰": ("CTX.stack.append(CTX.input_values[0][0][-1])", 0),
+    "¹": ("CTX.stack.append(CTX.input_values[0][0][-2])", 0),
     "²": fn_to_cmd(square, 1),
     "∇": (
-        "c, b, a = pop(vy_globals.stack, 3); vy_globals.stack.append(c); vy_globals.stack.append(a); vy_globals.stack.append(b)",
+        "c, b, a = pop(CTX.stack, 3); CTX.stack.append(c); CTX.stack.append(a); CTX.stack.append(b)",
         3,
     ),
     "⌈": fn_to_cmd(ceiling, 1),
     "⌊": fn_to_cmd(floor, 1),
     "¯": fn_to_cmd(deltas, 1),
     "±": fn_to_cmd(sign_of, 1),
-    "₴": ("vy_print(pop(vy_globals.stack), end='')", 1),
+    "₴": ("vy_print(pop(CTX.stack), end='')", 1),
     "…": (
-        "top = pop(vy_globals.stack); vy_globals.stack.append(top); vy_print(top)",
+        "top = pop(CTX.stack); CTX.stack.append(top); vy_print(top)",
         0,
     ),
     "□": (
-        """if vy_globals.inputs: vy_globals.stack.append(vy_globals.inputs)
+        """if CTX.inputs: CTX.stack.append(CTX.inputs)
 else:
     s, x = [], input()
     while x:
@@ -399,12 +397,12 @@ else:
     "⁼": make_cmd("int(deref({}) == deref({})", 2),
     "ƒ": fn_to_cmd(fractionify, 1),
     "ɖ": fn_to_cmd(decimalify, 1),
-    "×": ("vy_globals.stack.append('*')", 0),
+    "×": ("CTX.stack.append('*')", 0),
     "∪": fn_to_cmd(set_union, 2),
     "∩": fn_to_cmd(set_intersection, 2),
     "⊍": fn_to_cmd(set_caret, 2),
-    "£": ("register = pop(vy_globals.stack)", 1),
-    "¥": ("vy_globals.stack.append(register)", 0),
+    "£": ("register = pop(CTX.stack)", 1),
+    "¥": ("CTX.stack.append(register)", 0),
     "⇧": fn_to_cmd(graded, 1),
     "⇩": fn_to_cmd(graded_down, 1),
     "Ǎ": fn_to_cmd(two_power, 1),
@@ -414,25 +412,25 @@ else:
     "Ǒ": fn_to_cmd(order, 2),
     "ǒ": fn_to_cmd(is_empty, 1),
     "Ǔ": (
-        "rhs, lhs = pop(vy_globals.stack, 2); vy_globals.stack += overloaded_iterable_shift(lhs, rhs, ShiftDirections.LEFT)",
+        "rhs, lhs = pop(CTX.stack, 2); CTX.stack += overloaded_iterable_shift(lhs, rhs, ShiftDirections.LEFT)",
         2,
     ),
     "ǔ": (
-        "rhs, lhs = pop(vy_globals.stack, 2); vy_globals.stack += overloaded_iterable_shift(lhs, rhs, ShiftDirections.RIGHT)",
+        "rhs, lhs = pop(CTX.stack, 2); CTX.stack += overloaded_iterable_shift(lhs, rhs, ShiftDirections.RIGHT)",
         2,
     ),
     "¢": fn_to_cmd(infinite_replace, 3),
     "↵": fn_to_cmd(split_newlines_or_pow_10, 1),
-    "⅛": ("vy_globals.global_stack.append(pop(vy_globals.stack))", 1),
-    "¼": ("vy_globals.stack.append(pop(vy_globals.global_stack))", 0),
-    "¾": ("vy_globals.stack.append(deref(vy_globals.global_stack))", 0),
-    "Π": ("vy_globals.stack.append(product(iterable(pop(vy_globals.stack))))", 1),
+    "⅛": ("CTX.global_stack.append(pop(CTX.stack))", 1),
+    "¼": ("CTX.stack.append(pop(CTX.global_stack))", 0),
+    "¾": ("CTX.stack.append(deref(CTX.global_stack))", 0),
+    "Π": ("CTX.stack.append(product(iterable(pop(CTX.stack))))", 1),
     "„": (
-        "vy_globals.stack = iterable_shift(vy_globals.stack, ShiftDirections.LEFT)",
+        "CTX.stack = iterable_shift(CTX.stack, ShiftDirections.LEFT)",
         0,
     ),
     "‟": (
-        "vy_globals.stack = iterable_shift(vy_globals.stack, ShiftDirections.RIGHT)",
+        "CTX.stack = iterable_shift(CTX.stack, ShiftDirections.RIGHT)",
         0,
     ),
     "∆S": make_cmd("vectorise(math.asin, {})", 1),
@@ -461,17 +459,17 @@ else:
     "∆ṗ": fn_to_cmd(prev_prime, 1),
     "∆p": fn_to_cmd(closest_prime, 1),
     "∆ṙ": (
-        "vy_globals.stack.append(unsympy(sympy.prod(map(sympy.poly('x').__sub__, iterable(pop(vy_globals.stack)))).all_coeffs()[::-1]))",
+        "CTX.stack.append(unsympy(sympy.prod(map(sympy.poly('x').__sub__, iterable(pop(CTX.stack)))).all_coeffs()[::-1]))",
         1,
     ),
-    "∆Ṙ": ("vy_globals.stack.append(random.random())", 0),
+    "∆Ṙ": ("CTX.stack.append(random.random())", 0),
     "∆W": make_cmd(
         "vectorise(round, {}, {})", 2
     ),  # if you think I'm making this work with strings, then you can go commit utter go awayance. smh.
     "∆Ŀ": make_cmd("vectorise(lambda x, y: int(numpy.lcm(x, y)), {}, {})", 2),
     "øo": make_cmd("infinite_replace({}, {}, '')", 2),
     "øV": (
-        "replacement, needle, haystack = pop(vy_globals.stack, 3); vy_globals.stack.append(infinite_replace(haystack, needle, replacement))",
+        "replacement, needle, haystack = pop(CTX.stack, 3); CTX.stack.append(infinite_replace(haystack, needle, replacement))",
         3,
     ),
     "øc": make_cmd(
@@ -517,19 +515,19 @@ else:
     "ÞU": make_cmd("nub_sieve(iterable({}))", 1),
     "ÞT": fn_to_cmd(transpose, 1),
     "ÞD": (
-        "vy_globals.stack.append(Generator(diagonals(iterable(pop(vy_globals.stack), list))))",
+        "CTX.stack.append(Generator(diagonals(iterable(pop(CTX.stack), list))))",
         1,
     ),
     "ÞS": (
-        "vy_globals.stack.append(Generator(sublists(iterable(pop(vy_globals.stack), list))))",
+        "CTX.stack.append(Generator(sublists(iterable(pop(CTX.stack), list))))",
         1,
     ),
     "ÞṪ": (
-        "rhs, lhs = pop(vy_globals.stack, 2); print(lhs, rhs) ;vy_globals.stack.append(Generator(itertools.zip_longest(*iterable(lhs), fillvalue=rhs)))",
+        "rhs, lhs = pop(CTX.stack, 2); print(lhs, rhs) ;CTX.stack.append(Generator(itertools.zip_longest(*iterable(lhs), fillvalue=rhs)))",
         2,
     ),
     "Þ℅": (
-        "top = iterable(pop(vy_globals.stack)); vy_globals.stack.append(random.sample(top, len(top)))",
+        "top = iterable(pop(CTX.stack)); CTX.stack.append(random.sample(top, len(top)))",
         1,
     ),
     "Þ•": make_cmd("dot_product(iterable({}), iterable({}))", 2),
@@ -540,19 +538,19 @@ else:
     "ÞR": make_cmd("foldl_rows({1}, deref({0}))", 2),
     "ÞC": make_cmd("foldl_cols({1}, deref({0}))", 2),
     "¨U": (
-        "if not online_version: vy_globals.stack.append(request(pop(vy_globals.stack)))",
+        "if not online_version: CTX.stack.append(request(pop(CTX.stack)))",
         1,
     ),
     "¨M": (
-        "function, indices, original = pop(vy_globals.stack, 3); vy_globals.stack.append(map_at(function, iterable(original), iterable(indices)))",
+        "function, indices, original = pop(CTX.stack, 3); CTX.stack.append(map_at(function, iterable(original), iterable(indices)))",
         3,
     ),
-    "¨,": ("vy_print(pop(vy_globals.stack), end=' ')", 1),
+    "¨,": ("vy_print(pop(CTX.stack), end=' ')", 1),
     "¨…": (
-        "top = pop(vy_globals.stack); vy_globals.stack.append(top); vy_print(top, end=' ')",
+        "top = pop(CTX.stack); CTX.stack.append(top); vy_print(top, end=' ')",
         1,
     ),
-    "¨t": ("vectorise(time.sleep, pop(vy_globals.stack))", 1),
+    "¨t": ("vectorise(time.sleep, pop(CTX.stack))", 1),
     "kA": make_cmd("string.ascii_uppercase", 0),
     "ke": make_cmd("math.e", 0),
     "kf": make_cmd("'Fizz'", 0),
@@ -667,11 +665,11 @@ else:
 }
 
 transformers = {
-    "⁽": "vy_globals.stack.append(function_A)",
-    "v": "temp = transformer_vectorise(function_A, vy_globals.stack); vy_globals.stack.append(temp)",
-    "&": "apply_to_register(function_A, vy_globals.stack)",
-    "~": "dont_pop(function_A, vy_globals.stack)",
-    "ß": "cond = pop(vy_globals.stack)\nif cond: vy_globals.stack += function_call(function_A, vy_globals.stack)",
-    "₌": "para_apply(function_A, function_B, vy_globals.stack)",
-    "₍": "para_apply(function_A, function_B, vy_globals.stack); rhs, lhs = pop(vy_globals.stack, 2); vy_globals.stack.append([lhs, rhs])",
+    "⁽": "CTX.stack.append(function_A)",
+    "v": "temp = transformer_vectorise(function_A, CTX.stack); CTX.stack.append(temp)",
+    "&": "apply_to_register(function_A, CTX.stack)",
+    "~": "dont_pop(function_A, CTX.stack)",
+    "ß": "cond = pop(CTX.stack)\nif cond: CTX.stack += function_call(function_A, CTX.stack)",
+    "₌": "para_apply(function_A, function_B, CTX.stack)",
+    "₍": "para_apply(function_A, function_B, CTX.stack); rhs, lhs = pop(CTX.stack, 2); CTX.stack.append([lhs, rhs])",
 }

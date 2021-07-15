@@ -3,7 +3,7 @@ import functools
 import inspect
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from vyxal import vy_globals
+from vyxal.vy_globals import CTX
 from vyxal import words
 
 # Generic type constants
@@ -23,9 +23,9 @@ vyxal_imports = (
     inspect.cleandoc(
         """
                     import vyxal
-                    from vyxal import vy_globals
                     from vyxal.array_builtins import *
-                    from vyxal.builtins import *"""
+                    from vyxal.builtins import *
+                    from vyxal.vy_globals import CTX"""
     )
     + NEWLINE
 )
@@ -376,15 +376,15 @@ def from_ten(number, custom_base):
 
 
 def iterable(item, t=None):
-    t = t or vy_globals.number_iterable
+    t = t or CTX.number_iterable
     if vy_type(item) == Number:
         if t is list:
             return [int(let) if let not in "-." else let for let in str(item)]
         if t is range:
             return Generator(
                 range(
-                    vy_globals.MAP_START,
-                    int(item) + vy_globals.MAP_OFFSET,
+                    CTX.MAP_START,
+                    int(item) + CTX.MAP_OFFSET,
                 )
             )
         return t(item)
