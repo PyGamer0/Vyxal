@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class IGenerator(ABC):    
+class IGenerator(ABC):
     def __iter__(self):
         return self
 
@@ -38,13 +38,17 @@ class IGenerator(ABC):
         pass
 
     @abstractmethod
+    def _force_next(self):
+        """Force the generator to produce a new value at the end"""
+
+    @abstractmethod
     def __setitem__(self, index, value):
         pass
 
     @abstractmethod
     def has_next(self) -> bool:
         """Can another item be gotten from this generator?"""
-    
+
     @abstractmethod
     def reset_index(self, ind):
         """Reset the index to the given index"""
@@ -256,66 +260,127 @@ class Generator(IGenerator):
 
         return out + "⟩"
 
+
 class IterateGenerator(IGenerator):
     """
     A generator made by repeatedly applying a function to a value
     """
-    def __init__(fn, start, ended=False):
+
+    def __init__(self, fn, start, ended=False):
+        self._fn = fn
         self._generated = [start]
-        self.index = 0
-        self.ended = ended
-    
-    @abstractmethod
+        self._ind = 0
+        self._ended = ended
+
     def __copy__(self) -> IterateGenerator:
-        res = IterateGenerator(self.fn, None)
+        res = IterateGenerator(self._fn, None, ended=self._ended)
         res._generated = self._generated[::]
+        res._ind = self._ind
         return res
 
-    @abstractmethod
     def __len__(self) -> int:
         while self.has_next():
             self.__next__()
-        
-        return len(self.generated)
+
+        return len(self._generated)
 
     def ordered_contains(self, elem) -> bool:
         pass
 
-    @abstractmethod
     def __contains__(self, elem) -> bool:
-        if elem in self.generated:
+        if elem in self._generated:
             return True
-        
+
         while self.has_next():
             if self.__next__() == elem:
                 return True
         return False
 
-    @abstractmethod
     def __getitem__(self, position):
         pass
 
-    @abstractmethod
     def __str__(self, limit=-1) -> str:
         pass
 
-    @abstractmethod
     def __next__(self):
-        self.ind += 1
-        if self.ind < len(self._generated):
-            return self._generated[self.ind]
-        
-        next_elem = self.fn(self._generated[-1])
+        self._ind += 1
+        if self._ind < len(self._generated):
+            return self._generated[self._ind]
+
+        next_elem = self._fn(self._generated[-1])
         self._generated.append(next_elem)
         return next_elem
 
-    @abstractmethod
     def __setitem__(self, index, value):
         pass
 
     def reset_index(self, ind):
-        self.ind = ind
+        self._ind = ind
 
-    @abstractmethod
+    def to_list(self) -> list:
+        pass
+
+class UnfoldGenerator(IGenerator):
+    """
+    A generator made by applying a function to a state, getting a value
+    and a new state back, and applying the function to that new state again.
+    """
+
+    def __init__(self, fn, start_state, ended=False):
+        self._fn = fn
+        self._state = start_state
+        self._generated = []
+        self._ind = 0
+        self._ended = ended
+
+    def __copy__(self) -> IterateGenerator:
+        res = UnfoldGenerator(self._fn, self._state, ended=self._ended)
+        res._generated = self._generated[::]
+        res._ind = self._ind
+        return res
+
+    def __len__(self) -> int:
+        while self.has_next():
+            self.__next__()
+
+        return len(self._generated)
+
+    def ordered_contains(self, elem) -> bool:
+        pass
+
+    def __contains__(self, elem) -> bool:
+        if elem in self._generated:
+            return True
+
+        while self.has_next():
+            if self.__next__() == elem:
+                return True
+        return False
+
+    def __getitem__(self, position):
+        pass
+
+    def __str__(self, limit=-1) -> str:
+        pass
+
+    def __next__(self):
+        self._ind += 1
+        if self._ind < len(self._generated):
+            return self._generated[self._ind]
+
+        return self.force_next()
+
+    def force_next(self):
+        next_state, next_elem = self._fn(self._state)
+        self._state = next_state
+        self._generated.append(next_elem)
+        return next_elem
+
+    def __setitem__(self, index, value):
+        pass
+
+    def reset_index(self, ind):
+        self._ind = ind
+
     def to_list(self) -> list:
         pass
