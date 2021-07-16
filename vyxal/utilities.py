@@ -25,7 +25,7 @@ vyxal_imports = (
                     import vyxal
                     from vyxal.array_builtins import *
                     from vyxal.builtins import *
-                    from vyxal.vy_globals import CTX"""
+        """
     )
     + NEWLINE
 )
@@ -375,16 +375,16 @@ def from_ten(number, custom_base):
     return result
 
 
-def iterable(item, t=None):
-    t = t or CTX.number_iterable
+def iterable(item, t=None, context=None):
+    t = t or context.number_iterable
     if vy_type(item) == Number:
         if t is list:
             return [int(let) if let not in "-." else let for let in str(item)]
         if t is range:
             return Generator(
                 range(
-                    CTX.MAP_START,
-                    int(item) + CTX.MAP_OFFSET,
+                    context.MAP_START,
+                    int(item) + context.MAP_OFFSET,
                 )
             )
         return t(item)

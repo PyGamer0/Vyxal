@@ -39,6 +39,7 @@ def tapp(x):
     print(CTX.stack)
     return x
 
+
 def add(lhs, rhs):
     """
     Returns lhs + rhs. Check command docs for type cohesion.
@@ -71,14 +72,14 @@ def all_prime_factors(item):
     return vectorise(all_prime_factors, item)
 
 
-def apply_to_register(function, vector):
-    vector.append(CTX.register)
+def apply_to_register(function, vector, context):
+    vector.append(context.register)
     if function.stored_arity > 1:
-        top, over = pop(CTX.stack, 2)
-        CTX.stack.append(top)
-        CTX.stack.append(over)
+        top, over = pop(context.stack, 2)
+        context.stack.append(top)
+        context.stack.append(over)
     vector += function_call(function, vector)
-    CTX.register = pop(vector)
+    context.register = pop(vector)
 
 
 def assigned(vector, index, item):
@@ -415,14 +416,14 @@ def divisors_of(item):
     return divisors
 
 
-def dont_pop(function, vector):
+def dont_pop(function, vector, context):
     if function.stored_arity == 1:
         vector.append(vy_filter(function, pop(vector)))
     else:
-        CTX.retain_items = True
-        args = pop(vector, function.stored_arity)
+        context.retain_items = True
+        args = pop(vector, function.stored_arity, context=context)
         vector.append(safe_apply(function, args[::-1]))
-        CTX.retain_items = False
+        context.retain_items = False
 
 
 def escape(item):
@@ -1068,13 +1069,13 @@ def palindromise(item):
     return join(item, reverse(item)[1:])
 
 
-def para_apply(fn_A, fn_B, vector):
+def para_apply(fn_A, fn_B, vector, context):
     temp = array_builtins.deref(vector)[::]
     args_A = pop(vector, fn_A.stored_arity, True)
     args_B = pop(temp, fn_B.stored_arity, True)
     vector.append(fn_A(args_A)[-1])
     vector.append(fn_B(args_B)[-1])
-    CTX.stack = vector
+    context.stack = vector
 
 
 def pluralise(lhs, rhs):
@@ -1092,7 +1093,7 @@ def polynomial(vector):
     return numpy.roots(vector).tolist()
 
 
-def pop(vector, num=1, wrap=False):
+def pop(vector, num=1, wrap=False, context=None):
     ret = []
 
     for _ in range(num):
@@ -1102,14 +1103,15 @@ def pop(vector, num=1, wrap=False):
             x = get_input()
             ret.append(x)
 
-    if CTX.retain_items:
+    if context is not None and context.retain_items:
         vector += ret[::-1]
 
-    CTX.last_popped = ret
+    if context is not None:
+        context.last_popped = ret
     if num == 1 and not wrap:
         return ret[0]
 
-    if CTX.reverse_args:
+    if context is not None and context.reverse_args:
         return ret[::-1]
     return ret
 

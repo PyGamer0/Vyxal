@@ -13,7 +13,7 @@ from vyxal.builtins import *
 from vyxal.commands import *
 from vyxal.parser import *
 from vyxal.utilities import *
-from vyxal.vy_globals import CTX
+from vyxal.vy_globals import Context
 
 try:
     import numpy
@@ -26,6 +26,9 @@ except:
     import pwn
     import regex
     import sympy
+
+
+CTX = Context()
 
 
 def wrap_in_lambda(tokens):
@@ -77,9 +80,9 @@ def vy_compile(program, header=""):
             else:
                 try:
                     float(value)
-                    compiled += f"CTX.stack.append(sympy.Rational({value}))"
+                    compiled += f"CTX.stack.append({value})"
                 except:
-                    compiled += f"CTX.stack.append(sympy.Rational('0.5'))"
+                    compiled += f"CTX.stack.append(0.5)"
         elif token_name == Structure.STRING:
             string, string_type = token_value[0], token_value[1]
             if string_type == StringDelimiters.NORMAL:
@@ -298,7 +301,6 @@ else:
                     + NEWLINE
                 )
             else:
-                print(token_value)
                 function_A = vy_compile(wrap_in_lambda([token_value[1][0]]))
                 function_B = vy_compile(wrap_in_lambda([token_value[1][1]]))
                 compiled += function_A + NEWLINE + function_B + NEWLINE
@@ -326,6 +328,7 @@ else:
 
 
 def execute(code, flags, input_list, output_variable):
+    global CTX
     CTX.online_version = True
     CTX.output = output_variable
     CTX.output[1] = ""

@@ -74,7 +74,7 @@ command_dict = {
     "∨": make_cmd("{} or {}", 2),
     "⟇": make_cmd("{1} or {0}", 2),
     "÷": (
-        "for item in iterable(pop(CTX.stack)): CTX.stack.append(item)",
+        "for item in iterable(pop(CTX.stack), context=CTX): CTX.stack.append(item)",
         1,
     ),
     "•": fn_to_cmd(log, 2),
@@ -125,7 +125,7 @@ command_dict = {
     ">": make_cmd("compare({}, {}, Comparitors.GREATER_THAN)", 2),
     "=": make_cmd("compare({}, {}, Comparitors.EQUALS)", 2),
     "?": make_cmd("get_input(0)", 0),
-    "A": make_cmd("int(all(iterable({})))", 1),
+    "A": make_cmd("int(all(iterable({}, context=CTX)))", 1),
     "B": make_cmd("vy_int({}, 2)", 1),
     "C": fn_to_cmd(chrord, 1),
     "D": (
@@ -137,15 +137,15 @@ command_dict = {
     ),
     "E": fn_to_cmd(vy_eval, 1),
     "F": make_cmd("vy_filter({1}, {0})", 2),
-    "G": make_cmd("vy_max(iterable({}))", 1),
+    "G": make_cmd("vy_max(iterable({}, context=CTX))", 1),
     "H": make_cmd("vy_int({}, 16)", 1),
     "I": fn_to_cmd(vy_int, 1),
     "J": fn_to_cmd(join, 2),
     "K": fn_to_cmd(divisors_of, 1),
-    "L": make_cmd("len(iterable({}))", 1),
+    "L": make_cmd("len(iterable({}, context=CTX))", 1),
     "M": fn_to_cmd(vy_map, 2),
     "N": fn_to_cmd(negate, 1),
-    "O": make_cmd("iterable({}).count({})", 2),
+    "O": make_cmd("iterable({}, context=CTX).count({})", 2),
     "P": make_cmd("vy_str({}).strip(vy_str({}))", 2),
     "Q": ("exit()", 0),
     "R": (
@@ -163,23 +163,23 @@ command_dict = {
     "X": ("CTX.context_level += 1", 0),
     "Y": fn_to_cmd(interleave, 2),
     "Z": make_cmd(
-        "Generator(vy_zip(iterable({}), iterable({})))",
+        "Generator(vy_zip(iterable({}, context=CTX), iterable({}, context=CTX)))",
         2,
     ),
-    "a": ("CTX.stack.append(int(any(iterable(pop(CTX.stack)))))", 1),
+    "a": ("CTX.stack.append(int(any(iterable(pop(CTX.stack), context=CTX))))", 1),
     "b": fn_to_cmd(vy_bin, 1),
     "c": (
         "needle, haystack = pop(CTX.stack, 2);"
-        "haystack = iterable(haystack, str)\n"
+        "haystack = iterable(haystack, str, context=CTX)\n"
         "if type(haystack) is str: needle = vy_str(needle)\n"
-        "CTX.stack.append(int(needle in iterable(haystack, str)))",
+        "CTX.stack.append(int(needle in iterable(haystack, str, context=CTX)))",
         2,
     ),
     "d": make_cmd("multiply({}, 2)", 1),
     "e": fn_to_cmd(exponate, 2),
-    "f": make_cmd("flatten(iterable({}))", 1),
-    "g": make_cmd("vy_min(iterable({}))", 1),
-    "h": make_cmd("iterable({})[0]", 1),
+    "f": make_cmd("flatten(iterable({}, context=CTX))", 1),
+    "g": make_cmd("vy_min(iterable({}, context=CTX))", 1),
+    "h": make_cmd("iterable({}, context=CTX)[0]", 1),
     "i": fn_to_cmd(index, 2),
     "j": fn_to_cmd(join_on, 2),
     "l": fn_to_cmd(nwise_pair, 2),
@@ -193,7 +193,7 @@ command_dict = {
     "q": fn_to_cmd(uneval, 1),
     "r": fn_to_cmd(orderless_range, 2),
     "s": fn_to_cmd(vy_sorted, 1),
-    "t": make_cmd("iterable({})[-1]", 1),
+    "t": make_cmd("iterable({}, context=CTX)[-1]", 1),
     "u": make_cmd("-1", 0),
     "w": make_cmd("[{}]", 1),
     "x": ("CTX.stack += this_function(CTX.stack)", 0),
@@ -226,7 +226,7 @@ command_dict = {
         vy_divmod, 2
     ),  # Dereference because generators could accidentally get exhausted.
     "ė": (
-        "CTX.stack.append(Generator(enumerate(iterable(pop(CTX.stack)))))",
+        "CTX.stack.append(Generator(enumerate(iterable(pop(CTX.stack), context=CTX))))",
         1,
     ),
     "ḟ": fn_to_cmd(find, 2),
@@ -235,7 +235,7 @@ command_dict = {
         2,
     ),
     "ḣ": (
-        "top = iterable(pop(CTX.stack)); CTX.stack.append(top[0]); CTX.stack.append(top[1:])",
+        "top = iterable(pop(CTX.stack), context=CTX); CTX.stack.append(top[0]); CTX.stack.append(top[1:])",
         1,
     ),
     "ḭ": fn_to_cmd(integer_divide, 2),
@@ -244,19 +244,19 @@ command_dict = {
         3,
     ),
     "ṁ": (
-        "top = iterable(pop(CTX.stack)); CTX.stack.append(divide(summate(top), len(top)))",
+        "top = iterable(pop(CTX.stack), context=CTX); CTX.stack.append(divide(summate(top), len(top)))",
         1,
     ),
     "ṅ": fn_to_cmd(first_n, 1),
     "ȯ": fn_to_cmd(first_n, 2),
-    "ṗ": ("CTX.stack.append(powerset(iterable(pop(CTX.stack))))", 1),
+    "ṗ": ("CTX.stack.append(powerset(iterable(pop(CTX.stack), context=CTX)))", 1),
     "ṙ": fn_to_cmd(vy_round, 1),
     "ṡ": (
         "fn , vector = pop(CTX.stack, 2); CTX.stack.append(vy_sorted(vector, fn))",
         2,
     ),
     "ṫ": (
-        "vector = iterable(pop(CTX.stack)); CTX.stack.append(vector[:-1]); CTX.stack.append(vector[-1])",
+        "vector = iterable(pop(CTX.stack), context=CTX); CTX.stack.append(vector[:-1]); CTX.stack.append(vector[-1])",
         1,
     ),
     "ẇ": fn_to_cmd(wrap, 2),
@@ -265,11 +265,11 @@ command_dict = {
         2,
     ),
     "ẏ": (
-        "obj = iterable(pop(CTX.stack)); CTX.stack.append(Generator(range(0, len(obj))))",
+        "obj = iterable(pop(CTX.stack), context=CTX); CTX.stack.append(Generator(range(0, len(obj))))",
         1,
     ),
     "ż": (
-        "obj = iterable(pop(CTX.stack)); CTX.stack.append(Generator(range(1, len(obj) + 1)))",
+        "obj = iterable(pop(CTX.stack), context=CTX); CTX.stack.append(Generator(range(1, len(obj) + 1)))",
         1,
     ),
     "√": ("CTX.stack.append(exponate(pop(CTX.stack), 0.5))", 1),
@@ -301,15 +301,15 @@ command_dict = {
         1,
     ),
     "¦": (
-        "CTX.stack.append(cumulative_sum(iterable(pop(CTX.stack))))",
+        "CTX.stack.append(cumulative_sum(iterable(pop(CTX.stack), context=CTX)))",
         1,
     ),
     "≈": (
-        "CTX.stack.append(int(len(set(iterable(pop(CTX.stack)))) == 1))",
+        "CTX.stack.append(int(len(set(iterable(pop(CTX.stack), context=CTX))) == 1))",
         1,
     ),
     "Ȧ": (
-        "value, lst_index, vector = pop(CTX.stack, 3); CTX.stack.append(assigned(iterable(vector), lst_index, value))",
+        "value, lst_index, vector = pop(CTX.stack, 3); CTX.stack.append(assigned(iterable(vector, context=CTX), lst_index, value))",
         3,
     ),
     "Ḃ": ("CTX.stack += bifurcate(pop(CTX.stack))", 1),
@@ -326,12 +326,12 @@ if vy_type(top) is Number:
 else:
     limit = -1; vector = top
 fn = pop(CTX.stack)
-CTX.stack.append(Generator(fn, limit=limit, initial=iterable(vector)))
+CTX.stack.append(Generator(fn, limit=limit, initial=iterable(vector, context=CTX)))
 """,
         2,
     ),
-    "Ġ": make_cmd("group_consecutive(iterable({}))", 1),
-    "Ḣ": ("CTX.stack.append(iterable(pop(CTX.stack))[1:])", 1),
+    "Ġ": make_cmd("group_consecutive(iterable({}, context=CTX))", 1),
+    "Ḣ": ("CTX.stack.append(iterable(pop(CTX.stack), context=CTX)[1:])", 1),
     "İ": fn_to_cmd(indexed_into, 2),
     "Ŀ": (
         "new, original, value = pop(CTX.stack, 3)\nif Function in map(type, (new, original, value)): CTX.stack.append(repeat_no_collect(value, original, new))\nelse: CTX.stack.append(transliterate(iterable(original, str), iterable(new, str), iterable(value, str)))",
@@ -350,12 +350,12 @@ CTX.stack.append(Generator(fn, limit=limit, initial=iterable(vector)))
         0,
     ),
     "Ṗ": (
-        "CTX.stack.append(Generator(permutations(iterable(pop(CTX.stack)))))",
+        "CTX.stack.append(Generator(permutations(iterable(pop(CTX.stack), context=CTX))))",
         1,
     ),
     "Ṙ": fn_to_cmd(reverse, 1),
     "Ṡ": ("CTX.stack = [summate(CTX.stack)]", 0),
-    "Ṫ": ("CTX.stack.append(iterable(pop(CTX.stack), str)[:-1])", 1),
+    "Ṫ": ("CTX.stack.append(iterable(pop(CTX.stack), str, context=CTX)[:-1])", 1),
     "Ẇ": make_cmd("split({}, {}, True)", 2),
     "Ẋ": fn_to_cmd(cartesian_product, 2),
     "Ẏ": make_cmd("one_argument_tail_index({}, {}, 0)", 2),
@@ -390,7 +390,7 @@ else:
     "⋎": fn_to_cmd(bit_or, 2),
     "꘍": fn_to_cmd(bit_xor, 2),
     "ꜝ": fn_to_cmd(bit_not, 1),
-    "℅": make_cmd("random.choice(iterable({}))", 1),
+    "℅": make_cmd("random.choice(iterable({}, context=CTX))", 1),
     "≤": make_cmd("compare({}, {}, Comparitors.LESS_THAN_EQUALS)", 2),
     "≥": make_cmd("compare({}, {}, Comparitors.GREATER_THAN_EQUALS)", 2),
     "≠": make_cmd("int(deref({}) != deref({}))", 2),
@@ -424,7 +424,7 @@ else:
     "⅛": ("CTX.global_stack.append(pop(CTX.stack))", 1),
     "¼": ("CTX.stack.append(pop(CTX.global_stack))", 0),
     "¾": ("CTX.stack.append(deref(CTX.global_stack))", 0),
-    "Π": ("CTX.stack.append(product(iterable(pop(CTX.stack))))", 1),
+    "Π": ("CTX.stack.append(product(iterable(pop(CTX.stack), context=CTX)))", 1),
     "„": (
         "CTX.stack = iterable_shift(CTX.stack, ShiftDirections.LEFT)",
         0,
@@ -438,7 +438,7 @@ else:
     "∆T": make_cmd("math.atan({})", 1),
     "∆q": make_cmd("polynomial([{1}, {0}, 0])", 2),
     "∆Q": make_cmd("polynomial([1, {1}, {0}])", 2),
-    "∆P": make_cmd("polynomial(iterable({}))", 1),
+    "∆P": make_cmd("polynomial(iterable({}, context=CTX))", 1),
     "∆s": make_cmd("vectorise(math.sin, {})", 1),
     "∆c": make_cmd("vectorise(math.cos, {})", 1),
     "∆t": make_cmd("vectorise(math.tan, {})", 1),
@@ -459,7 +459,7 @@ else:
     "∆ṗ": fn_to_cmd(prev_prime, 1),
     "∆p": fn_to_cmd(closest_prime, 1),
     "∆ṙ": (
-        "CTX.stack.append(unsympy(sympy.prod(map(sympy.poly('x').__sub__, iterable(pop(CTX.stack)))).all_coeffs()[::-1]))",
+        "CTX.stack.append(unsympy(sympy.prod(map(sympy.poly('x').__sub__, iterable(pop(CTX.stack), context=CTX))).all_coeffs()[::-1]))",
         1,
     ),
     "∆Ṙ": ("CTX.stack.append(random.random())", 0),
@@ -480,9 +480,9 @@ else:
         "'»' + utilities.from_ten({}, encoding.codepage_number_compress) + '»'", 1
     ),
     "øĊ": fn_to_cmd(centre, 1),
-    "øm": make_cmd("palindromise(iterable({}))", 1),
+    "øm": make_cmd("palindromise(iterable({}), context=CTX)", 1),
     "øe": make_cmd(
-        "run_length_encode(iterable({}, str))",
+        "run_length_encode(iterable({}, str, context=CTX))",
         1,
     ),
     "ød": fn_to_cmd(run_length_decode, 1),
@@ -512,26 +512,30 @@ else:
         "Generator(factorials(), is_numeric_sequence=True)",
         0,
     ),
-    "ÞU": make_cmd("nub_sieve(iterable({}))", 1),
+    "ÞU": make_cmd("nub_sieve(iterable({}, context=CTX))", 1),
     "ÞT": fn_to_cmd(transpose, 1),
     "ÞD": (
-        "CTX.stack.append(Generator(diagonals(iterable(pop(CTX.stack), list))))",
+        "CTX.stack.append(Generator(diagonals(iterable(pop(CTX.stack), list, context=CTX))))",
         1,
     ),
     "ÞS": (
-        "CTX.stack.append(Generator(sublists(iterable(pop(CTX.stack), list))))",
+        "CTX.stack.append(Generator(sublists(iterable(pop(CTX.stack), list, context=CTX))))",
         1,
     ),
     "ÞṪ": (
-        "rhs, lhs = pop(CTX.stack, 2); print(lhs, rhs) ;CTX.stack.append(Generator(itertools.zip_longest(*iterable(lhs), fillvalue=rhs)))",
+        "rhs, lhs = pop(CTX.stack, 2); print(lhs, rhs) ;CTX.stack.append(Generator(itertools.zip_longest(*iterable(lhs, context=CTX), fillvalue=rhs)))",
         2,
     ),
     "Þ℅": (
         "top = iterable(pop(CTX.stack)); CTX.stack.append(random.sample(top, len(top)))",
         1,
     ),
-    "Þ•": make_cmd("dot_product(iterable({}), iterable({}))", 2),
-    "ÞṀ": make_cmd("matrix_multiply(iterable({}), iterable({}))", 2),
+    "Þ•": make_cmd(
+        "dot_product(iterable({}, context=CTX), iterable({}, context=CTX))", 2
+    ),
+    "ÞṀ": make_cmd(
+        "matrix_multiply(iterable({}, context=CTX), iterable({}, context=CTX))", 2
+    ),
     "ÞḊ": fn_to_cmd(determinant, 1),
     "Þ/": make_cmd("diagonal_main(deref({}))", 1),
     "Þ\\": make_cmd("diagonal_anti(deref({}))", 1),
@@ -542,7 +546,7 @@ else:
         1,
     ),
     "¨M": (
-        "function, indices, original = pop(CTX.stack, 3); CTX.stack.append(map_at(function, iterable(original), iterable(indices)))",
+        "function, indices, original = pop(CTX.stack, 3); CTX.stack.append(map_at(function, iterable(original, context=CTX), iterable(indices, context=CTX)))",
         3,
     ),
     "¨,": ("vy_print(pop(CTX.stack), end=' ')", 1),
@@ -666,10 +670,10 @@ else:
 
 transformers = {
     "⁽": "CTX.stack.append(function_A)",
-    "v": "temp = transformer_vectorise(function_A, CTX.stack); CTX.stack.append(temp)",
-    "&": "apply_to_register(function_A, CTX.stack)",
-    "~": "dont_pop(function_A, CTX.stack)",
-    "ß": "cond = pop(CTX.stack)\nif cond: CTX.stack += function_call(function_A, CTX.stack)",
-    "₌": "para_apply(function_A, function_B, CTX.stack)",
-    "₍": "para_apply(function_A, function_B, CTX.stack); rhs, lhs = pop(CTX.stack, 2); CTX.stack.append([lhs, rhs])",
+    "v": "temp = transformer_vectorise(function_A, CTX.stack, CTX); CTX.stack.append(temp)",
+    "&": "apply_to_register(function_A, CTX.stack, CTX)",
+    "~": "dont_pop(function_A, CTX.stack, CTX)",
+    "ß": "cond = pop(CTX.stack)\nif cond: CTX.stack += function_call(function_A, CTX.stack, CTX)",
+    "₌": "para_apply(function_A, function_B, CTX.stack, CTX)",
+    "₍": "para_apply(function_A, function_B, CTX.stack, CTX); rhs, lhs = pop(CTX.stack, 2); CTX.stack.append([lhs, rhs])",
 }
