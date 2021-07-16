@@ -36,11 +36,11 @@ def tapp(x):
     else:
         print(x)
 
-    print(context.stack)
+    print(ctx.stack)
     return x
 
 
-def add(lhs, rhs, context=None):
+def add(lhs, rhs, ctx=None):
     """
     Returns lhs + rhs. Check command docs for type cohesion.
     """
@@ -53,14 +53,14 @@ def add(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(add, lhs, rhs))()
 
 
-def all_combinations(vector, context=None):
+def all_combinations(vector, ctx=None):
     ret = []
     for i in range(len(vector) + 1):
         ret = join(ret, combinations_replace_generate(vector, i))
     return ret
 
 
-def all_prime_factors(item, context=None):
+def all_prime_factors(item, ctx=None):
     if vy_type(item) == Number:
         m = sympy.ntheory.factorint(int(item))
         out = []
@@ -72,17 +72,17 @@ def all_prime_factors(item, context=None):
     return vectorise(all_prime_factors, item)
 
 
-def apply_to_register(function, vector, context):
-    vector.append(context.register)
+def apply_to_register(function, vector, ctx):
+    vector.append(ctx.register)
     if function.stored_arity > 1:
-        top, over = pop(context.stack, 2)
-        context.stack.append(top)
-        context.stack.append(over)
+        top, over = pop(ctx.stack, 2)
+        ctx.stack.append(top)
+        ctx.stack.append(over)
     vector += function_call(function, vector)
-    context.register = pop(vector)
+    ctx.register = pop(vector)
 
 
-def assigned(vector, index, item, context=None):
+def assigned(vector, index, item, ctx=None):
     if type(vector) is str:
         vector = list(vector)
         vector[index] = item
@@ -93,7 +93,7 @@ def assigned(vector, index, item, context=None):
         return temp
 
 
-def optimal_compress(word, context=None):
+def optimal_compress(word, ctx=None):
     DP = [" " * (len(word) + 1)] * (len(word) + 1)
     DP[0] = ""
     for index in range(1, len(word) + 1):
@@ -106,7 +106,7 @@ def optimal_compress(word, context=None):
     return DP[-1]
 
 
-def bifurcate(item, context=None):
+def bifurcate(item, ctx=None):
     t_item = vy_type(item)
     if t_item in (Number, list, str):
         return [item, reverse(item)]
@@ -115,7 +115,7 @@ def bifurcate(item, context=None):
         return [g, reverse(g)]
 
 
-def bit_and(lhs, rhs, context=None):
+def bit_and(lhs, rhs, ctx=None):
     types = (vy_type(lhs), vy_type(rhs))
     return {
         (Number, Number): lambda: lhs & rhs,
@@ -131,7 +131,7 @@ def bit_and(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(bit_and, lhs, rhs))()
 
 
-def bit_or(lhs, rhs, context=None):
+def bit_or(lhs, rhs, ctx=None):
     types = (vy_type(lhs), vy_type(rhs))
     if types == (str, str):
         suffixes = {lhs[-i:] for i in range(1, len(lhs) + 1)}
@@ -154,14 +154,14 @@ def bit_or(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(bit_or, lhs, rhs))()
 
 
-def bit_not(item, context=None):
+def bit_not(item, ctx=None):
     return {
         str: lambda: int(any(map(lambda x: x.isupper(), item))),
         Number: lambda: ~item,
     }.get(vy_type(item), lambda: vectorise(bit_not, item))()
 
 
-def bit_xor(lhs, rhs, context=None):
+def bit_xor(lhs, rhs, ctx=None):
     types = (vy_type(lhs), vy_type(rhs))
     return {
         (Number, Number): lambda: lhs ^ rhs,
@@ -177,13 +177,13 @@ def bit_xor(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(bit_xor, lhs, rhs))()
 
 
-def ceiling(item, context=None):
+def ceiling(item, ctx=None):
     return {Number: lambda: math.ceil(item), str: lambda: item.split(" ")}.get(
         vy_type(item), lambda: vectorise(ceiling, item)
     )()
 
 
-def centre(vector, context=None):
+def centre(vector, ctx=None):
     vector = array_builtins.deref(iterable(vector), True)
     focal = max(map(len, vector))
 
@@ -195,7 +195,7 @@ def centre(vector, context=None):
     return gen()
 
 
-def chrord(item, context=None):
+def chrord(item, ctx=None):
     t_item = vy_type(item)
     if t_item is str and len(item) == 1:
         return ord(item)
@@ -205,14 +205,14 @@ def chrord(item, context=None):
         return Generator(map(chrord, item))
 
 
-def closest_prime(item, context=None):
+def closest_prime(item, ctx=None):
     up, down = next_prime(item), prev_prime(item)
     if abs(item - down) < abs(item - up):
         return down
     return up
 
 
-def compare(lhs, rhs, mode, context=None):
+def compare(lhs, rhs, mode, ctx=None):
     op = ["==", "<", ">", "!=", "<=", ">="][mode]
 
     types = tuple(map(vy_type, [lhs, rhs]))
@@ -247,13 +247,13 @@ def compare(lhs, rhs, mode, context=None):
         return boolean
 
 
-def complement(item, context=None):
+def complement(item, ctx=None):
     return {Number: lambda: 1 - item, str: lambda: item.split(",")}.get(
         vy_type(item), lambda: vectorise(complement, item)
     )()
 
 
-def combinations_replace_generate(lhs, rhs, context=None):
+def combinations_replace_generate(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
     if Function not in types:
         ret = {
@@ -292,7 +292,7 @@ def combinations_replace_generate(lhs, rhs, context=None):
         return gen()
 
 
-def const_divisibility(item, n, string_overload, context=None):
+def const_divisibility(item, n, string_overload, ctx=None):
     def int_if_not_tuple():
         a = string_overload(item)
         if type(a) is tuple:
@@ -310,7 +310,7 @@ def const_divisibility(item, n, string_overload, context=None):
     )()
 
 
-def counts(vector, context=None):
+def counts(vector, ctx=None):
     ret = []
     vector = iterable(vector)
     for item in set(vector):
@@ -318,7 +318,7 @@ def counts(vector, context=None):
     return ret
 
 
-def decimalify(vector, context=None):
+def decimalify(vector, ctx=None):
     if vy_type(vector) == Number:
         return iterable(vector)
     elif vy_type(vector) is str:
@@ -327,7 +327,7 @@ def decimalify(vector, context=None):
         return functools.reduce(lambda x, y: divide(x, y), vector)
 
 
-def deltas(vector, context=None):
+def deltas(vector, ctx=None):
     ret = []
     vector = iterable(vector)
     for i in range(len(vector) - 1):
@@ -335,11 +335,11 @@ def deltas(vector, context=None):
     return ret
 
 
-def dictionary_compress(item, context=None):
+def dictionary_compress(item, ctx=None):
     return "`" + optimal_compress(vy_str(item)) + "`"
 
 
-def distance_between(lhs, rhs, context=None):
+def distance_between(lhs, rhs, ctx=None):
     inner = Generator(
         map(lambda x: exponate(subtract(x[0], x[1]), 2), vy_zip(lhs, rhs))
     )
@@ -347,7 +347,7 @@ def distance_between(lhs, rhs, context=None):
     return exponate(inner, 0.5)
 
 
-def distribute(vector, value, context=None):
+def distribute(vector, value, ctx=None):
     types = vy_type(vector), vy_type(value)
     if types == (Number, Number):
         return abs(vector - value)
@@ -364,7 +364,7 @@ def distribute(vector, value, context=None):
     return vector
 
 
-def divide(lhs, rhs, context=None):
+def divide(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
 
     def handle_numbers(lhs, rhs):
@@ -387,7 +387,7 @@ def divide(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(divide, lhs, rhs))()
 
 
-def divisors_of(item, context=None):
+def divisors_of(item, ctx=None):
     t_item = vy_type(item)
     if t_item in [list, Generator]:
         return Generator(array_builtins.prefixes(item))
@@ -416,17 +416,17 @@ def divisors_of(item, context=None):
     return divisors
 
 
-def dont_pop(function, vector, context):
+def dont_pop(function, vector, ctx):
     if function.stored_arity == 1:
         vector.append(vy_filter(function, pop(vector)))
     else:
-        context.retain_items = True
-        args = pop(vector, function.stored_arity, context=context)
+        ctx.retain_items = True
+        args = pop(vector, function.stored_arity, ctx=ctx)
         vector.append(safe_apply(function, args[::-1]))
-        context.retain_items = False
+        ctx.retain_items = False
 
 
-def escape(item, context=None):
+def escape(item, ctx=None):
     ret = ""
     escaped = False
     for char in item:
@@ -442,7 +442,7 @@ def escape(item, context=None):
     return ret
 
 
-def exponate(lhs, rhs, context=None):
+def exponate(lhs, rhs, ctx=None):
     types = (vy_type(lhs), vy_type(rhs))
 
     if types == (str, str):
@@ -466,7 +466,7 @@ def exponate(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(exponate, lhs, rhs))()
 
 
-def factorial(item, context=None):
+def factorial(item, ctx=None):
     t_item = vy_type(item)
     if t_item == Number:
         if item in FIRST_100_FACTORIALS:
@@ -509,7 +509,7 @@ def fibonacci():
         yield temp
 
 
-def find(haystack, needle, start=0, context=None):
+def find(haystack, needle, start=0, ctx=None):
     if type(needle) is Function:
         return array_builtins.indices_where(haystack, needle)
 
@@ -541,7 +541,7 @@ def find(haystack, needle, start=0, context=None):
     return -1
 
 
-def flatten(item, context=None):
+def flatten(item, ctx=None):
     """
     Returns a deep-flattened (all sublists expanded) version of the input
     """
@@ -558,14 +558,14 @@ def flatten(item, context=None):
         return ret
 
 
-def floor(item, context=None):
+def floor(item, ctx=None):
     return {
         Number: lambda: math.floor(item),
         str: lambda: int("".join(digit for digit in item if digit in "0123456789")),
     }.get(vy_type(item), lambda: vectorise(floor, item))()
 
 
-def format_string(value, items, context=None):
+def format_string(value, items, ctx=None):
     ret = ""
     index = 0
     f_index = 0
@@ -584,7 +584,7 @@ def format_string(value, items, context=None):
     return ret
 
 
-def fractionify(item, context=None):
+def fractionify(item, ctx=None):
     import re
 
     if vy_type(item) == Number:
@@ -601,7 +601,7 @@ def fractionify(item, context=None):
         return vectorise(fractionify, item)
 
 
-def function_call(fn, vector, context=None):
+def function_call(fn, vector, ctx=None):
     if type(fn) is Function:
         return fn(vector, self=fn)
     else:
@@ -615,7 +615,7 @@ def function_call(fn, vector, context=None):
         ]
 
 
-def gcd(lhs, rhs=None, context=None):
+def gcd(lhs, rhs=None, ctx=None):
     if rhs:
         return {
             (Number, Number): lambda: math.gcd(int(lhs), int(rhs)),
@@ -636,33 +636,33 @@ def gcd(lhs, rhs=None, context=None):
         return int(numpy.gcd.reduce(lhs))
 
 
-def get_input(predefined_level=None, context=None):
-    level = context.input_level
+def get_input(predefined_level=None, ctx=None):
+    level = ctx.input_level
     if predefined_level is not None:
         level = predefined_level
 
-    if level in context.input_values:
-        source, index = context.input_values[level]
+    if level in ctx.input_values:
+        source, index = ctx.input_values[level]
     else:
         source, index = [], -1
     if source:
         ret = source[index % len(source)]
-        context.input_values[level][1] += 1
+        ctx.input_values[level][1] += 1
 
-        if context.keg_mode and type(ret) is str:
+        if ctx.keg_mode and type(ret) is str:
             return [ord(c) for c in ret]
         return ret
     else:
         try:
             temp = vy_eval(input())
-            if context.keg_mode and type(temp) is str:
+            if ctx.keg_mode and type(temp) is str:
                 return [ord(c) for c in temp]
             return temp
         except:
             return 0
 
 
-def graded(item, context=None):
+def graded(item, ctx=None):
     return {Number: lambda: item + 2, str: lambda: item.upper(),}.get(
         vy_type(item),
         lambda: Generator(
@@ -674,7 +674,7 @@ def graded(item, context=None):
     )()
 
 
-def graded_down(item, context=None):
+def graded_down(item, ctx=None):
     return {Number: lambda: item - 2, str: lambda: item.lower(),}.get(
         vy_type(item),
         lambda: Generator(
@@ -690,14 +690,14 @@ def graded_down(item, context=None):
     )()
 
 
-def halve(item, context=None):
+def halve(item, ctx=None):
     return {
         Number: lambda: divide(item, 2),
         str: lambda: wrap(item, ceiling(len(item) / 2)),
     }.get(vy_type(item), lambda: vectorise(halve, item))()
 
 
-def infinite_replace(haystack, needle, replacement, context=None):
+def infinite_replace(haystack, needle, replacement, ctx=None):
     import copy
 
     loop = True
@@ -711,7 +711,7 @@ def infinite_replace(haystack, needle, replacement, context=None):
     return haystack
 
 
-def inserted(vector, item, index, context):
+def inserted(vector, item, index, ctx):
     temp = array_builtins.deref(iterable(vector), False)
     t_vector = type(temp)
     if t_vector is list:
@@ -722,18 +722,18 @@ def inserted(vector, item, index, context):
     }.get(t_vector, lambda: inserted(temp._dereference(), item, index))()
 
 
-def integer_divide(lhs, rhs, context):
+def integer_divide(lhs, rhs, ctx):
     types = vy_type(lhs), vy_type(rhs)
     return {
         (Number, Number): lambda: lhs // rhs,
         (Number, str): lambda: divide(lhs, rhs)[0],
         (str, Number): lambda: divide(lhs, rhs)[0],
-        (Function, types[1]): lambda: vy_reduce(lhs, reverse(rhs), context)[0],
-        (types[0], Function): lambda: vy_reduce(rhs, reverse(lhs), context)[0],
+        (Function, types[1]): lambda: vy_reduce(lhs, reverse(rhs), ctx)[0],
+        (types[0], Function): lambda: vy_reduce(rhs, reverse(lhs), ctx)[0],
     }.get(types, lambda: vectorise(integer_divide, lhs, rhs))()
 
 
-def integer_list(value, context=None):
+def integer_list(value, ctx=None):
     charmap = dict(zip("etaoinshrd", "0123456789"))
     ret = []
     for c in value.split():
@@ -744,7 +744,7 @@ def integer_list(value, context=None):
     return ret
 
 
-def is_divisble(lhs, rhs, context=None):
+def is_divisble(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
     return {
         (Number, Number): lambda: int(modulo(lhs, rhs) == 0 and rhs != 0),
@@ -754,13 +754,13 @@ def is_divisble(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(is_divisble, lhs, rhs))()
 
 
-def is_empty(item, context=None):
+def is_empty(item, ctx=None):
     return {Number: lambda: item % 3, str: lambda: int(item == "")}.get(
         vy_type(item), lambda: vectorise(is_empty, item)
     )()
 
 
-def is_prime(n, context=None):
+def is_prime(n, ctx=None):
     if type(n) is str:
         if n.upper() == n.lower():
             return -1
@@ -771,7 +771,7 @@ def is_prime(n, context=None):
     return 1 if sympy.ntheory.isprime(n) else 0
 
 
-def is_square(n, context=None):
+def is_square(n, ctx=None):
     if type(n) in (float, str):
         return 0
     elif isinstance(n, int):
@@ -782,7 +782,7 @@ def is_square(n, context=None):
         return vectorise(is_square, n)
 
 
-def iterable_shift(vector, direction, times=1, context=None):
+def iterable_shift(vector, direction, times=1, ctx=None):
     vector = array_builtins.deref(iterable(vector))
     t_vector = type(vector)
     for _ in range(times):
@@ -808,7 +808,7 @@ def iterable_shift(vector, direction, times=1, context=None):
     return vector
 
 
-def join(lhs, rhs, context=None):
+def join(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
     return {
         (types[0], types[1]): lambda: str(lhs) + str(rhs),
@@ -824,7 +824,7 @@ def join(lhs, rhs, context=None):
     }[types]()
 
 
-def join_on(vector, item, context=None):
+def join_on(vector, item, ctx=None):
     types = vy_type(vector), vy_type(item)
     return {
         (Number, Number): lambda: vy_eval(str(item).join(str(vector))),
@@ -837,7 +837,7 @@ def join_on(vector, item, context=None):
     }[types]()
 
 
-def levenshtein_distance(s1, s2, context=None):
+def levenshtein_distance(s1, s2, ctx=None):
     # https://stackoverflow.com/a/32558749
     if len(s1) > len(s2):
         s1, s2 = s2, s1
@@ -856,7 +856,7 @@ def levenshtein_distance(s1, s2, context=None):
     return distances[-1]
 
 
-def log(lhs, rhs, context=None):
+def log(lhs, rhs, ctx=None):
     types = (vy_type(lhs), vy_type(rhs))
     if types == (str, str):
         ret = ""
@@ -891,7 +891,7 @@ def log(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(log, lhs, rhs))()
 
 
-def lshift(lhs, rhs, context=None):
+def lshift(lhs, rhs, ctx=None):
     types = (vy_type(lhs), vy_type(rhs))
     return {
         (Number, Number): lambda: lhs << rhs,
@@ -907,14 +907,14 @@ def lshift(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(lshift, lhs, rhs))()
 
 
-def mirror(item, context=None):
+def mirror(item, ctx=None):
     if vy_type(item) in (str, Number):
         return add(item, reverse(item))
     else:
         return join(item, reverse(item))
 
 
-def modulo(lhs, rhs, context=None):
+def modulo(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
 
     if types[1] is Number and rhs == 0:
@@ -934,7 +934,7 @@ def modulo(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(modulo, lhs, rhs))()
 
 
-def multiply(lhs, rhs, context=None):
+def multiply(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
     if types == (Function, Number):
         lhs.stored_arity = rhs
@@ -950,7 +950,7 @@ def multiply(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(multiply, lhs, rhs))()
 
 
-def ncr(lhs, rhs, context=None):
+def ncr(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
     return {
         (Number, Number): lambda: unsympy(
@@ -962,13 +962,13 @@ def ncr(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(ncr, lhs, rhs))()
 
 
-def negate(item, context=None):
+def negate(item, ctx=None):
     return {Number: lambda: -item, str: lambda: item.swapcase()}.get(
         vy_type(item), lambda: vectorise(negate, item)
     )()
 
 
-def next_prime(item, context=None):
+def next_prime(item, ctx=None):
     if not isinstance(item, int):
         return item
 
@@ -979,7 +979,7 @@ def next_prime(item, context=None):
     return item + factor
 
 
-def nth_prime(item, context=None):
+def nth_prime(item, ctx=None):
     t_item = vy_type(item)
     return {
         Number: lambda: sympy.ntheory.prime(int(item) + 1),
@@ -987,7 +987,7 @@ def nth_prime(item, context=None):
     }.get(t_item, lambda: vectorise(nth_prime, item))()
 
 
-def nwise_pair(lhs, rhs, context=None):
+def nwise_pair(lhs, rhs, ctx=None):
     if vy_type(rhs) != Number:
         return len(iterable(lhs)) == len(rhs)
     iters = itertools.tee(iterable(lhs), rhs)
@@ -998,7 +998,7 @@ def nwise_pair(lhs, rhs, context=None):
     return Generator(zip(*iters))
 
 
-def one_argument_tail_index(vector, index, start, context=None):
+def one_argument_tail_index(vector, index, start, ctx=None):
     types = (vy_type(vector), vy_type(index))
     if Number not in types:
         lhs, rhs = vy_str(vector), vy_str(index)
@@ -1014,7 +1014,7 @@ def one_argument_tail_index(vector, index, start, context=None):
     }[types]()
 
 
-def order(lhs, rhs, context=None):
+def order(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
     if types == (Number, Number):
         if rhs == 0 or abs(rhs) == 1:
@@ -1033,7 +1033,7 @@ def order(lhs, rhs, context=None):
         return infinite_replace(iterable(lhs, str), iterable(rhs, str), "")
 
 
-def orderless_range(lhs, rhs, context=None):
+def orderless_range(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
     return {
         (Number, Number): lambda: Generator(
@@ -1047,7 +1047,7 @@ def orderless_range(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(orderless_range, lhs, rhs))()
 
 
-def osabie_newline_join(item, context=None):
+def osabie_newline_join(item, ctx=None):
     ret = []
     for n in item:
         if vy_type(n) in [list, Generator]:
@@ -1057,25 +1057,25 @@ def osabie_newline_join(item, context=None):
     return "\n".join(ret)
 
 
-def overloaded_iterable_shift(lhs, rhs, direction, context=None):
+def overloaded_iterable_shift(lhs, rhs, direction, ctx=None):
     if type(rhs) is not int:
         return [lhs, iterable_shift(rhs, direction)]
     else:
         return [iterable_shift(lhs, direction, rhs)]
 
 
-def palindromise(item, context=None):
+def palindromise(item, ctx=None):
     # This is different to m or bifurcate and join because it doesn't have two duplicate in the middle
     return join(item, reverse(item)[1:])
 
 
-def para_apply(fn_A, fn_B, vector, context):
+def para_apply(fn_A, fn_B, vector, ctx):
     temp = array_builtins.deref(vector)[::]
     args_A = pop(vector, fn_A.stored_arity, True)
     args_B = pop(temp, fn_B.stored_arity, True)
     vector.append(fn_A(args_A)[-1])
     vector.append(fn_B(args_B)[-1])
-    context.stack = vector
+    ctx.stack = vector
 
 
 def pluralise(lhs, rhs):
@@ -1093,7 +1093,7 @@ def polynomial(vector):
     return numpy.roots(vector).tolist()
 
 
-def pop(vector, num=1, wrap=False, context=None):
+def pop(vector, num=1, wrap=False, ctx=None):
     ret = []
 
     for _ in range(num):
@@ -1103,20 +1103,20 @@ def pop(vector, num=1, wrap=False, context=None):
             x = get_input()
             ret.append(x)
 
-    if context is not None and context.retain_items:
+    if ctx is not None and ctx.retain_items:
         vector += ret[::-1]
 
-    if context is not None:
-        context.last_popped = ret
+    if ctx is not None:
+        ctx.last_popped = ret
     if num == 1 and not wrap:
         return ret[0]
 
-    if context is not None and context.reverse_args:
+    if ctx is not None and ctx.reverse_args:
         return ret[::-1]
     return ret
 
 
-def prime_factors(item, context=None):
+def prime_factors(item, ctx=None):
     t_item = vy_type(item)
     return {
         Number: lambda: sympy.ntheory.primefactors(int(item)),
@@ -1124,7 +1124,7 @@ def prime_factors(item, context=None):
     }.get(t_item, lambda: vectorise(prime_factors, item))()
 
 
-def prepend(lhs, rhs, context=None):
+def prepend(lhs, rhs, ctx=None):
     types = (vy_type(lhs), vy_type(rhs))
     return {
         (types[0], types[1]): lambda: join(rhs, lhs),
@@ -1133,7 +1133,7 @@ def prepend(lhs, rhs, context=None):
     }[types]()
 
 
-def prev_prime(item, context=None):
+def prev_prime(item, ctx=None):
     if not isinstance(item, int):
         return item
     if item <= 2:
@@ -1145,7 +1145,7 @@ def prev_prime(item, context=None):
     return item - factor
 
 
-def product(vector, context=None):
+def product(vector, ctx=None):
     if type(vector) is Generator:
         return vector._reduce(multiply)
     if not vector:
@@ -1156,7 +1156,7 @@ def product(vector, context=None):
     return ret
 
 
-def rand_between(lhs, rhs, context=None):
+def rand_between(lhs, rhs, ctx=None):
     if type(lhs) is int and type(rhs) is int:
         return random.randint(lhs, rhs)
 
@@ -1164,7 +1164,7 @@ def rand_between(lhs, rhs, context=None):
         return random.choice([lhs, rhs])
 
 
-def regex_replace(source, pattern, replacent, context=None):
+def regex_replace(source, pattern, replacent, ctx=None):
     if type(replacent) is not Function:
         return regex.sub(pattern, vy_str(replacent), source)
 
@@ -1182,7 +1182,7 @@ def regex_replace(source, pattern, replacent, context=None):
     return out
 
 
-def remove(vector, item, context=None):
+def remove(vector, item, ctx=None):
     return {
         str: lambda: vector.replace(str(item), ""),
         Number: lambda: str(vector).replace(str(item), ""),
@@ -1191,7 +1191,7 @@ def remove(vector, item, context=None):
     }[vy_type(vector)]()
 
 
-def repeat(vector, times, extra=None, context=None):
+def repeat(vector, times, extra=None, ctx=None):
     t_vector = vy_type(vector)
     if t_vector is Function and vy_type(times) is Function:
 
@@ -1208,23 +1208,23 @@ def repeat(vector, times, extra=None, context=None):
         if t_vector is str:
             return vector[::-1] * times
         elif t_vector is Number:
-            context.safe_mode = True
+            ctx.safe_mode = True
             temp = vy_eval(str(reverse(vector)) * times)
-            context.safe_mode = False
+            ctx.safe_mode = False
             return temp
         return Generator(itertools.repeat(reversed(vector), times))
     else:
         if t_vector is str:
             return vector * times
         elif t_vector is Number:
-            context.safe_mode = True
+            ctx.safe_mode = True
             temp = vy_eval(str(reverse(vector)) * times)
-            context.safe_mode = False
+            ctx.safe_mode = False
             return temp
         return Generator(itertools.repeat(vector, times))
 
 
-def repeat_no_collect(predicate, modifier, value, context=None):
+def repeat_no_collect(predicate, modifier, value, ctx=None):
     @Generator
     def gen():
         item = value
@@ -1235,7 +1235,7 @@ def repeat_no_collect(predicate, modifier, value, context=None):
     return gen()
 
 
-def replace(haystack, needle, replacement, context=None):
+def replace(haystack, needle, replacement, ctx=None):
     t_haystack = vy_type(haystack)
     if t_haystack is list:
         return [replacement if value == needle else value for value in haystack]
@@ -1247,7 +1247,7 @@ def replace(haystack, needle, replacement, context=None):
         return str(haystack).replace(str(needle), str(replacement))
 
 
-def request(url, context=None):
+def request(url, ctx=None):
     x = urllib.request.urlopen(urlify(url)).read()
     try:
         return x.decode("utf-8")
@@ -1255,7 +1255,7 @@ def request(url, context=None):
         return x.decode("latin-1")
 
 
-def reverse(vector, context=None):
+def reverse(vector, ctx=None):
     if type(vector) in [float, int]:
         s_vector = str(vector)
         if vector < 0:
@@ -1265,7 +1265,7 @@ def reverse(vector, context=None):
     return vector[::-1]
 
 
-def rshift(lhs, rhs, context=None):
+def rshift(lhs, rhs, ctx=None):
     types = (vy_type(lhs), vy_type(rhs))
     return {
         (Number, Number): lambda: lhs >> rhs,
@@ -1281,14 +1281,14 @@ def rshift(lhs, rhs, context=None):
     }.get(types, lambda: vectorise(rshift, lhs, rhs))()
 
 
-def run_length_decode(vector, context=None):
+def run_length_decode(vector, ctx=None):
     ret = ""
     for item in vector:
         ret += item[0] * item[1]
     return ret
 
 
-def sentence_case(item, context=None):
+def sentence_case(item, ctx=None):
     ret = ""
     capitalise = True
     for char in item:
@@ -1299,7 +1299,7 @@ def sentence_case(item, context=None):
     return ret
 
 
-def set_caret(lhs, rhs, context=None):
+def set_caret(lhs, rhs, ctx=None):
     # Why make my own function instead of using standard ^? Because numbers and strings. that's why.
     types = vy_type(lhs), vy_type(rhs)
     new_lhs, new_rhs = {
@@ -1311,7 +1311,7 @@ def set_caret(lhs, rhs, context=None):
     return list(set(new_lhs) ^ set(new_rhs))
 
 
-def set_intersection(lhs, rhs, context=None):
+def set_intersection(lhs, rhs, ctx=None):
     # Why make my own function instead of using standard &? Because numbers and strings. that's why.
     types = vy_type(lhs), vy_type(rhs)
     new_lhs, new_rhs = {
@@ -1323,7 +1323,7 @@ def set_intersection(lhs, rhs, context=None):
     return list(set(new_lhs) & set(new_rhs))
 
 
-def set_union(lhs, rhs, context=None):
+def set_union(lhs, rhs, ctx=None):
     # Why make my own function instead of using standard |? Because numbers and strings. that's why.
     types = vy_type(lhs), vy_type(rhs)
     new_lhs, new_rhs = {
@@ -1335,7 +1335,7 @@ def set_union(lhs, rhs, context=None):
     return list(set(new_lhs) | set(new_rhs))
 
 
-def sign_of(item, context=None):
+def sign_of(item, ctx=None):
     t = vy_type(item)
     if t == Number:
         if item < 0:
@@ -1348,7 +1348,7 @@ def sign_of(item, context=None):
         return item
 
 
-def split(haystack, needle, keep_needle=False, context=None):
+def split(haystack, needle, keep_needle=False, ctx=None):
     t_haystack = vy_type(haystack)
     if t_haystack in [Number, str]:
         haystack, needle = str(haystack), str(needle)
@@ -1378,13 +1378,13 @@ def split(haystack, needle, keep_needle=False, context=None):
         return ret
 
 
-def split_newlines_or_pow_10(item, context=None):
+def split_newlines_or_pow_10(item, ctx=None):
     return {Number: lambda: 10 ** item, str: lambda: item.split("\n")}.get(
         vy_type(item), lambda: vectorise(split_newlines_or_pow_10, item)
     )()
 
 
-def split_on_words(item, context=None):
+def split_on_words(item, ctx=None):
     parts = []
     word = ""
 
@@ -1402,7 +1402,7 @@ def split_on_words(item, context=None):
     return parts
 
 
-def square(item, context=None):
+def square(item, ctx=None):
     def grid_helper(s):
         temp = s
         while not is_square(len(temp)):
@@ -1415,31 +1415,31 @@ def square(item, context=None):
     }.get(vy_type(item), lambda: multiply(item, array_builtins.deref(item)))()
 
 
-def stretch(string, length, context=None):
+def stretch(string, length, ctx=None):
     ret = string
     while len(ret) < length:
         ret += " " if len(ret) == 0 else ret[0]
     return ret
 
 
-def string_empty(item, context=None):
+def string_empty(item, ctx=None):
     return {Number: lambda: item % 3, str: len(item) == 0}.get(
         vy_type(item), lambda: vectorise(string_empty, item)
     )()
 
 
-def strip_non_alphabet(name, context=None):
+def strip_non_alphabet(name, ctx=None):
     stripped = filter(lambda char: char in string.ascii_letters + "_", name)
     return "".join(stripped)
 
 
-def substrings(item, context=None):
+def substrings(item, ctx=None):
     for i in range(0, len(item) + 1):
         for j in range(1, len(item) + 1):
             yield item[i:j]
 
 
-def subtract(lhs, rhs, context=None):
+def subtract(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
 
     return {
@@ -1469,7 +1469,7 @@ def transformer_vectorise(function, vector, contex=None):
         )  # idk how you'd vectorise over arity >3
 
 
-def transliterate(original, new, transliterant, context=None):
+def transliterate(original, new, transliterant, ctx=None):
     transliterant = array_builtins.deref(transliterant)
     t_string = type(transliterant)
     if t_string is list:
@@ -1491,7 +1491,7 @@ def transliterate(original, new, transliterant, context=None):
     return ret
 
 
-def trim(lhs, rhs, left=False, right=False, context=None):
+def trim(lhs, rhs, left=False, right=False, ctx=None):
     # I stole this from Jelly (but I overloaded it)
     # https://github.com/DennisMitchell/jellylanguage/blob/master/jelly/interpreter.py#L1131
 
@@ -1521,7 +1521,7 @@ def trim(lhs, rhs, left=False, right=False, context=None):
     return lhs[lindex:rindex]
 
 
-def truthy_indices(vector, context=None):
+def truthy_indices(vector, ctx=None):
     ret = []
     for i in range(len(vector)):
         if bool(vector[i]):
@@ -1529,7 +1529,7 @@ def truthy_indices(vector, context=None):
     return ret
 
 
-def two_power(item, context=None):
+def two_power(item, ctx=None):
     if vy_type(item) == Number:
         return 2 ** item
     elif vy_type(item) is str:
@@ -1542,7 +1542,7 @@ def two_power(item, context=None):
         return vectorise(two_power, item)
 
 
-def uneval(item, context=None):
+def uneval(item, ctx=None):
     item = [char for char in item]
     indices = [i for i, ltr in enumerate(item) if ltr in ["\\", "`"]][::-1]
     for i in indices:
@@ -1550,7 +1550,7 @@ def uneval(item, context=None):
     return "`" + "".join(item) + "`"
 
 
-def unsympy(item, context=None):
+def unsympy(item, ctx=None):
     if type(item) in (list, Generator):
         return vectorise(unsympy, item)
     if item.is_Integer:
@@ -1561,19 +1561,19 @@ def unsympy(item, context=None):
         return item
 
 
-def urlify(item, context=None):
+def urlify(item, ctx=None):
     if not (item.startswith("http://") or item.startswith("https://")):
         return "https://" + item
     return item
 
 
-def vectorised_not(item, context=None):
+def vectorised_not(item, ctx=None):
     return {Number: lambda: int(not item), str: lambda: int(not item)}.get(
         vy_type(item), lambda: vectorise(vectorised_not, item)
     )()
 
 
-def vertical_join(vector, padding=" ", context=None):
+def vertical_join(vector, padding=" ", ctx=None):
     if vy_type(padding) == vy_type(vector) == Number:
         return abs(vector - padding)
 
@@ -1589,7 +1589,7 @@ def vertical_join(vector, padding=" ", context=None):
     return out
 
 
-def vertical_mirror(item, mapping=None, context=None):
+def vertical_mirror(item, mapping=None, ctx=None):
     if type(item) is str:
         if mapping:
             temp = [
@@ -1605,7 +1605,7 @@ def vertical_mirror(item, mapping=None, context=None):
         return vectorise(vertical_mirror, item, mapping)
 
 
-def wrap(vector, width, context=None):
+def wrap(vector, width, ctx=None):
     types = vy_type(vector), vy_type(width)
     if types == (Function, types[1]):
         return array_builtins.map_every_n(width, vector, 2)
@@ -1632,14 +1632,14 @@ def wrap(vector, width, context=None):
     return ret
 
 
-def vy_abs(item, context=None):
+def vy_abs(item, ctx=None):
     return {
         Number: lambda: abs(item),
         str: lambda: remove(remove(remove(item, " "), "\n"), "\t"),
     }.get(vy_type(item), lambda: vectorise(vy_abs, item))()
 
 
-def vy_bin(item, context=None):
+def vy_bin(item, ctx=None):
     t_item = vy_type(item)
     return {
         Number: lambda: [int(x) for x in bin(int(item))[2:]],
@@ -1647,7 +1647,7 @@ def vy_bin(item, context=None):
     }.get(t_item, lambda: vectorise(vy_bin, item))()
 
 
-def vy_divmod(lhs, rhs, context=None):
+def vy_divmod(lhs, rhs, ctx=None):
     types = vy_type(lhs), vy_type(rhs)
 
     def niceify(item, function):
@@ -1666,20 +1666,20 @@ def vy_divmod(lhs, rhs, context=None):
     }[types]()
 
 
-def vy_eval(item, context=None):
+def vy_eval(item, ctx=None):
     if vy_type(item) is Number:
         return 2 ** item
     elif vy_type(item) in [list, Generator]:
         return vectorise(vy_eval, item)
 
-    if context.online_version or context.safe_mode:
+    if ctx.online_version or ctx.safe_mode:
         from vyxal.interpreter import vy_compile
         from vyxal.parser import Structure, Tokenise
 
         try:
             return pwn.safeeval.const(item)
         except:
-            f = Tokenise(item, context.variables_are_digraphs)
+            f = Tokenise(item, ctx.variables_are_digraphs)
             if len(f) and f[-1][-1] in (
                 Structure.STRING,
                 Structure.NUMBER,
@@ -1687,9 +1687,9 @@ def vy_eval(item, context=None):
             ):
                 try:
                     temp = vy_compile(item, vyxal_imports)
-                    context.stack = []
+                    ctx.stack = []
                     exec(temp)
-                    return context.stack[-1]
+                    return ctx.stack[-1]
                 except Exception as e:
                     print(e)
                     return item
@@ -1703,7 +1703,7 @@ def vy_eval(item, context=None):
             return item
 
 
-def vy_exec(item, context=None):
+def vy_exec(item, ctx=None):
     if vy_type(item) is str:
         import vyxal.interpreter
 
@@ -1715,7 +1715,7 @@ def vy_exec(item, context=None):
         return [vectorise(vy_exec, item)]
 
 
-def vy_filter(fn, vector, context=None):
+def vy_filter(fn, vector, ctx=None):
     def default_case(lhs, rhs):
         # remove elements from a that are in b
         out = "" if type(lhs) is str else []
@@ -1741,7 +1741,7 @@ def vy_filter(fn, vector, context=None):
     }[types]()
 
 
-def vy_int(item, base=10, context=None):
+def vy_int(item, base=10, ctx=None):
     t_item = type(item)
     if t_item not in [str, float, int, complex]:
         ret = 0
@@ -1759,7 +1759,7 @@ def vy_int(item, base=10, context=None):
         return vy_int(iterable(item), base)
 
 
-def vy_map(fn, vector, context=None):
+def vy_map(fn, vector, ctx=None):
     ret = []
     t_vector = vy_type(vector)
     t_function = vy_type(fn)
@@ -1774,7 +1774,7 @@ def vy_map(fn, vector, context=None):
 
     vec, function = (fn, vector) if t_vector is Function else (vector, fn)
     if vy_type(vec) == Number:
-        vec = range(context.MAP_START, int(vec) + context.MAP_OFFSET)
+        vec = range(ctx.MAP_START, int(vec) + ctx.MAP_OFFSET)
 
     if vy_type(vec) is Generator:
 
@@ -1790,7 +1790,7 @@ def vy_map(fn, vector, context=None):
     return ret
 
 
-def vy_max(item, other=None, context=None):
+def vy_max(item, other=None, ctx=None):
     if other is not None:
         return {
             (Number, Number): lambda: max(item, other),
@@ -1816,7 +1816,7 @@ def vy_max(item, other=None, context=None):
         return item
 
 
-def vy_min(item, other=None, context=None):
+def vy_min(item, other=None, ctx=None):
     if other is not None:
         ret = {
             (Number, Number): lambda: min(item, other),
@@ -1849,51 +1849,51 @@ def vy_min(item, other=None, context=None):
         return item
 
 
-def vy_oct(item, context=None):
+def vy_oct(item, ctx=None):
     return {
         Number: lambda: oct(item)[2:],
         str: lambda: (lambda: item, lambda: oct(int(item)))[item.isnumeric()]()[2:],
     }.get(vy_type(item), lambda: vectorise(vy_oct, item))()
 
 
-def vy_print(item, end="\n", raw=False, context=None):
-    context.printed = True
+def vy_print(item, end="\n", raw=False, ctx=None):
+    ctx.printed = True
     t_item = type(item)
     if t_item is Generator:
-        item._print(end, context=context)
+        item._print(end, ctx=ctx)
 
     elif t_item is list:
-        vy_print("⟨", "", False, context)
+        vy_print("⟨", "", False, ctx)
         if item:
             for value in item[:-1]:
-                vy_print(value, "|", True, context)
-            vy_print(item[-1], "", True, context)
-        vy_print("⟩", end, False, context)
+                vy_print(value, "|", True, ctx)
+            vy_print(item[-1], "", True, ctx)
+        vy_print("⟩", end, False, ctx)
     elif t_item is Function:
-        s = function_call(item, context.stack)
+        s = function_call(item, ctx.stack)
         vy_print(s[0], end=end, raw=raw)
     else:
-        if t_item is int and context.keg_mode:
+        if t_item is int and ctx.keg_mode:
             item = chr(item)
         if raw:
-            if context.online_version:
-                context.output.write(vy_repr(item) + end)
+            if ctx.online_version:
+                ctx.output.write(vy_repr(item) + end)
             else:
                 print(vy_repr(item), end=end)
         else:
-            if context.online_version:
-                context.output.write(vy_str(item) + end)
+            if ctx.online_version:
+                ctx.output.write(vy_str(item) + end)
             else:
                 print(vy_str(item), end=end)
-    """if context.online_version and len(context.output.w > 128000:
-        context.output[
+    """if ctx.online_version and len(ctx.output.w > 128000:
+        ctx.output[
             2
         ] = "Program terminated after reaching the maximum character limit for output."
         sys.exit(1)
         return"""
 
 
-def vy_range(item, start=0, lift_factor=0, context=None):
+def vy_range(item, start=0, lift_factor=0, ctx=None):
     t_item = vy_type(item)
     if t_item == Number:
         if item < 0:
@@ -1902,14 +1902,14 @@ def vy_range(item, start=0, lift_factor=0, context=None):
     return item
 
 
-def vy_reduce(fn, vector, context):
+def vy_reduce(fn, vector, ctx):
     t_type = vy_type(vector)
     if type(fn) != Function:
         return [vector, vectorise(reverse, fn)]
     if t_type is Generator:
         return [vector._reduce(fn)]
     if t_type is Number:
-        vector = list(range(context.MAP_START, int(vector) + context.MAP_OFFSET))
+        vector = list(range(ctx.MAP_START, int(vector) + ctx.MAP_OFFSET))
     vector = vector[::-1]
     working_value = pop(vector)
     vector = vector[::-1]
@@ -1918,7 +1918,7 @@ def vy_reduce(fn, vector, context):
     return [working_value]
 
 
-def vy_round(item, context=None):
+def vy_round(item, ctx=None):
     t_item = vy_type(item)
     if t_item == Number:
         return round(item)
@@ -1928,7 +1928,7 @@ def vy_round(item, context=None):
     return vectorise(vy_round, item)
 
 
-def vy_sorted(vector, fn=None, context=None):
+def vy_sorted(vector, fn=None, ctx=None):
     if fn is not None and type(fn) is not Function:
         return array_builtins.inclusive_range(vector, fn)
     t_vector = type(vector)
@@ -1947,18 +1947,18 @@ def vy_sorted(vector, fn=None, context=None):
     }.get(t_vector, lambda: Generator(sorted_vector))()
 
 
-def vy_str(item, context=None):
+def vy_str(item, ctx=None):
     t_item = vy_type(item)
     return {
         Number: str,
         str: lambda x: x,
         list: lambda x: "⟨" + "|".join([vy_repr(y) for y in x]) + "⟩",
         Generator: lambda x: vy_str(x._dereference()),
-        Function: lambda x: vy_str(function_call(x, context.stack)[0]),
+        Function: lambda x: vy_str(function_call(x, ctx.stack)[0]),
     }[t_item](item)
 
 
-def vy_zipmap(lhs, rhs, context=None):
+def vy_zipmap(lhs, rhs, ctx=None):
     if Function not in (vy_type(lhs), vy_type(rhs)):
         return [lhs, vy_zip(rhs, rhs)]
 

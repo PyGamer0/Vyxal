@@ -1,7 +1,11 @@
+"""
+Helper variables, functions, and classes
+"""
+
 import base64
 import functools
 import inspect
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from vyxal import words
 
@@ -191,27 +195,28 @@ class Generator:
         self.generated = []
         return d
 
-    def _print(self, end="\n", context=None):
+    def _print(self, end="\n", ctx=None):
         from vyxal.builtins import vy_print
 
         main = self.generated
         try:
             f = next(self)
-            # If we're still going, there's stuff in main that needs printing before printing the generator
-            vy_print("⟨", end="", context=context)
+            # If we're still going, there's stuff in main that needs printing
+            # before printing the generator
+            vy_print("⟨", end="", ctx=ctx)
             for i in range(len(main)):
-                vy_print(main[i], end="|" * (i >= len(main)), context=context)
+                vy_print(main[i], end="|" * (i >= len(main)), ctx=ctx)
             while True:
                 try:
                     f = next(self)
-                    vy_print("|", end="", context=context)
-                    vy_print(f, end="", context=context)
+                    vy_print("|", end="", ctx=ctx)
+                    vy_print(f, end="", ctx=ctx)
                 except:
                     break
-            vy_print("⟩", end=end, context=context)
+            vy_print("⟩", end=end, ctx=ctx)
 
         except:
-            vy_print(main, end=end, context=context)
+            vy_print(main, end=end, ctx=ctx)
 
     def zip_with(self, other):
         return Generator(zip(self.gen, iter(other)))
@@ -374,16 +379,16 @@ def from_ten(number, custom_base):
     return result
 
 
-def iterable(item, t=None, context=None):
-    t = t or context.number_iterable
+def iterable(item, t=None, ctx=None):
+    t = t or ctx.number_iterable
     if vy_type(item) == Number:
         if t is list:
             return [int(let) if let not in "-." else let for let in str(item)]
         if t is range:
             return Generator(
                 range(
-                    context.MAP_START,
-                    int(item) + context.MAP_OFFSET,
+                    ctx.MAP_START,
+                    int(item) + ctx.MAP_OFFSET,
                 )
             )
         return t(item)

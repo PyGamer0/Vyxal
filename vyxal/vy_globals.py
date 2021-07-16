@@ -48,7 +48,7 @@ class Context:
     def this_function(self, x):
         from vyxal.builtins import vy_print
 
-        vy_print(self.stack, context=self)
+        vy_print(self.stack, ctx=self)
         return x
 
     def set_globals(self, flags):

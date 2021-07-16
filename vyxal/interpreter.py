@@ -409,44 +409,44 @@ ALL flags should be used as is (no '-' prefix)
         exec(code, globals())
         if (not CTX.printed and "O" not in flags) or "o" in flags:
             if flags and "s" in flags:
-                vy_print(summate(pop(CTX.stack, context=CTX)), context=CTX)
+                vy_print(summate(pop(CTX.stack, ctx=CTX)), ctx=CTX)
             elif flags and "…" in flags:
-                top = pop(CTX.stack, context=CTX)
+                top = pop(CTX.stack, ctx=CTX)
                 if vy_type(top) in (list, Generator):
-                    vy_print(top[:100], context=CTX)
+                    vy_print(top[:100], ctx=CTX)
                 else:
-                    vy_print(top, context=CTX)
+                    vy_print(top, ctx=CTX)
             elif flags and "ṡ" in flags:
-                vy_print(" ".join([vy_str(n) for n in CTX.stack]), context=CTX)
+                vy_print(" ".join([vy_str(n) for n in CTX.stack]), ctx=CTX)
             elif flags and "d" in flags:
-                vy_print(summate(flatten(pop(CTX.stack, context=CTX))), context=CTX)
+                vy_print(summate(flatten(pop(CTX.stack, ctx=CTX))), ctx=CTX)
             elif flags and "Ṫ" in flags:
-                vy_print(summate(CTX.stack), context=CTX)
+                vy_print(summate(CTX.stack), ctx=CTX)
             elif flags and "S" in flags:
-                vy_print(" ".join([vy_str(n) for n in pop(CTX.stack)]), context=CTX)
+                vy_print(" ".join([vy_str(n) for n in pop(CTX.stack)]), ctx=CTX)
             elif flags and "C" in flags:
                 vy_print(
-                    "\n".join(centre([vy_str(n) for n in pop(CTX.stack)])), context=CTX
+                    "\n".join(centre([vy_str(n) for n in pop(CTX.stack)])), ctx=CTX
                 )
             elif flags and "l" in flags:
-                vy_print(len(pop(CTX.stack)), context=CTX)
+                vy_print(len(pop(CTX.stack)), ctx=CTX)
             elif flags and "G" in flags:
-                vy_print(vy_max(pop(CTX.stack, context=CTX)), context=CTX)
+                vy_print(vy_max(pop(CTX.stack, ctx=CTX)), ctx=CTX)
             elif flags and "g" in flags:
-                vy_print(vy_min(pop(CTX.stack, context=CTX)), context=CTX)
+                vy_print(vy_min(pop(CTX.stack, ctx=CTX)), ctx=CTX)
             elif flags and "W" in flags:
-                vy_print(CTX.stack, context=CTX)
+                vy_print(CTX.stack, ctx=CTX)
             elif CTX._vertical_join:
-                vy_print(vertical_join(pop(CTX.stack, context=CTX)), context=CTX)
+                vy_print(vertical_join(pop(CTX.stack, ctx=CTX)), ctx=CTX)
             elif CTX._join:
                 vy_print(
-                    "\n".join([vy_str(n) for n in pop(CTX.stack, context=CTX)]),
-                    context=CTX,
+                    "\n".join([vy_str(n) for n in pop(CTX.stack, ctx=CTX)]),
+                    ctx=CTX,
                 )
             elif flags and "J" in flags:
-                vy_print("\n".join([vy_str(n) for n in CTX.stack]), context=CTX)
+                vy_print("\n".join([vy_str(n) for n in CTX.stack]), ctx=CTX)
             else:
-                vy_print(pop(CTX.stack, context=CTX), context=CTX)
+                vy_print(pop(CTX.stack, ctx=CTX), ctx=CTX)
 
     except SystemExit:
         if "o" not in flags:
@@ -503,7 +503,7 @@ if __name__ == "__main__":
             CTX.context_level = 0
             line = vy_compile(line, vyxal_imports + header)
             exec(line)
-            vy_print(CTX.stack, context=CTX)
+            vy_print(CTX.stack, ctx=CTX)
     elif file_location == "h":
         print(
             "\nUsage: python3 Vyxal.py <file> <flags (single string of flags)> <input(s) (if not from STDIN)>"
@@ -591,4 +591,4 @@ if __name__ == "__main__":
             elif flags and "J" in flags:
                 print("\n".join([vy_str(n) for n in CTX.stack]))
             else:
-                vy_print(pop(CTX.stack, context=CTX), context=CTX)
+                vy_print(pop(CTX.stack, ctx=CTX), ctx=CTX)
