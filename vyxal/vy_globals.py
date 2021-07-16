@@ -15,6 +15,7 @@ class Context:
 
     def reset(self):
         """Reset all variables"""
+        print("reset lol")
         self.context_level = 0
         self.context_values = [0]
         self.global_stack = []
@@ -26,7 +27,7 @@ class Context:
         self.number_iterable = list
         self.raw_strings = False
         self.online_version = False
-        self.output = ""
+        self.output = None
         self.printed = False
         self.register = 0
         self.retain_items = False
@@ -42,11 +43,12 @@ class Context:
         self._join = False
         self._vertical_join = False
         self.use_encoding = False
+        self.stderr = None
 
     def this_function(self, x):
         from vyxal.builtins import vy_print
 
-        vy_print(self.stack)
+        vy_print(self.stack, context=self)
         return x
 
     def set_globals(self, flags):
@@ -77,7 +79,3 @@ class Context:
         self.keg_mode = "K" in flags
         self.safe_mode = "E" in flags
         self.raw_strings = "D" in flags
-
-
-# The global context
-CTX = Context()

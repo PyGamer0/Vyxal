@@ -48,11 +48,11 @@ def make_cmd(
     else:
         fn_call = to_fn_call(var_names)
     if arity > 0:
-        cmd = f"{', '.join(var_names[::-1])} = pop(CTX.stack, {arity});"
+        cmd = f"{', '.join(var_names[::-1])} = pop(CTX.stack, {arity}, context=CTX); "
     else:
         cmd = ""
     # cmd += f"res = {fn_call}; CTX.stack.append(res);"
-    cmd += f"CTX.stack.append(tapp({fn_call}));"
+    cmd += f"CTX.stack.append({fn_call});"
     return cmd, arity
 
 
@@ -110,7 +110,7 @@ command_dict = {
     "%": fn_to_cmd(modulo, 2),
     "*": fn_to_cmd(multiply, 2),
     "+": fn_to_cmd(add, 2),
-    ",": ("vy_print(pop(CTX.stack))", 1),
+    ",": ("vy_print(pop(CTX.stack), context=CTX)", 1),
     "-": fn_to_cmd(subtract, 2),
     "/": fn_to_cmd(divide, 2),
     ":": (
@@ -149,7 +149,7 @@ command_dict = {
     "P": make_cmd("vy_str({}).strip(vy_str({}))", 2),
     "Q": ("exit()", 0),
     "R": (
-        "fn, vector = pop(CTX.stack, 2); CTX.stack += vy_reduce(fn, vector)",
+        "fn, vector = pop(CTX.stack, 2); CTX.stack += vy_reduce(fn, vector, CTX)",
         2,
     ),
     "S": fn_to_cmd(vy_str, 1),
@@ -371,9 +371,9 @@ CTX.stack.append(Generator(fn, limit=limit, initial=iterable(vector, context=CTX
     "⌊": fn_to_cmd(floor, 1),
     "¯": fn_to_cmd(deltas, 1),
     "±": fn_to_cmd(sign_of, 1),
-    "₴": ("vy_print(pop(CTX.stack), end='')", 1),
+    "₴": ("vy_print(pop(CTX.stack), end='', context=CTX)", 1),
     "…": (
-        "top = pop(CTX.stack); CTX.stack.append(top); vy_print(top)",
+        "top = pop(CTX.stack); CTX.stack.append(top); vy_print(top, context=CTX)",
         0,
     ),
     "□": (
@@ -549,9 +549,9 @@ else:
         "function, indices, original = pop(CTX.stack, 3); CTX.stack.append(map_at(function, iterable(original, context=CTX), iterable(indices, context=CTX)))",
         3,
     ),
-    "¨,": ("vy_print(pop(CTX.stack), end=' ')", 1),
+    "¨,": ("vy_print(pop(CTX.stack), end=' ', context=CTX)", 1),
     "¨…": (
-        "top = pop(CTX.stack); CTX.stack.append(top); vy_print(top, end=' ')",
+        "top = pop(CTX.stack); CTX.stack.append(top); vy_print(top, end=' ', context=CTX)",
         1,
     ),
     "¨t": ("vectorise(time.sleep, pop(CTX.stack))", 1),

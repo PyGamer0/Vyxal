@@ -28,9 +28,6 @@ except:
     import sympy
 
 
-CTX = Context()
-
-
 def wrap_in_lambda(tokens):
     if len(tokens) == 1 and tokens[0][0] == Structure.NONE:
         return [
@@ -327,13 +324,16 @@ else:
     return header + compiled
 
 
-def execute(code, flags, input_list, output_variable):
+CTX = Context()
+
+
+def execute(code, flags, input_list, output_variable, stderr):
+    print("starting here")
     global CTX
     CTX.online_version = True
-    CTX.output = output_variable
-    CTX.output[1] = ""
-    CTX.output[2] = ""
+    CTX.output = open(output_variable, "w", encoding="utf-8")
     flags = flags
+    CTX.error = open(output_variable, "w", encoding="utf-8")
 
     if input_list:
         eval_function = vy_eval
@@ -348,9 +348,8 @@ def execute(code, flags, input_list, output_variable):
         CTX.set_globals(flags)
 
         if "h" in flags:
-            CTX.output[
-                1
-            ] = """
+            CTX.output.write(
+                """
 ALL flags should be used as is (no '-' prefix)
 \tH\tPreset stack to 100
 \tj\tPrint top of stack joined by newlines on end of execution
@@ -387,62 +386,78 @@ ALL flags should be used as is (no '-' prefix)
 \tT\tMake the interpreter timeout after 60 seconds
 \t…\tTruncate lists at 100 items
 """
+            )
             return
     CTX.input_values[0] = [CTX.inputs, 0]
-    code = vy_compile(code, vyxal_imports)
+
+    header = (
+        inspect.cleandoc(
+            """
+        CTX.stack = []
+        CTX.register = 0
+        CTX.printed = False"""
+        )
+        + NEWLINE
+    )
+    code = vy_compile(code, vyxal_imports + header)
     CTX.context_level = 0
     if flags and "c" in flags:
-        CTX.output[2] = code
+        stderr.write(code)
 
     try:
         print(code)
         exec(code, globals())
+        if (not CTX.printed and "O" not in flags) or "o" in flags:
+            if flags and "s" in flags:
+                vy_print(summate(pop(CTX.stack, context=CTX)), context=CTX)
+            elif flags and "…" in flags:
+                top = pop(CTX.stack, context=CTX)
+                if vy_type(top) in (list, Generator):
+                    vy_print(top[:100], context=CTX)
+                else:
+                    vy_print(top, context=CTX)
+            elif flags and "ṡ" in flags:
+                vy_print(" ".join([vy_str(n) for n in CTX.stack]), context=CTX)
+            elif flags and "d" in flags:
+                vy_print(summate(flatten(pop(CTX.stack, context=CTX))), context=CTX)
+            elif flags and "Ṫ" in flags:
+                vy_print(summate(CTX.stack), context=CTX)
+            elif flags and "S" in flags:
+                vy_print(" ".join([vy_str(n) for n in pop(CTX.stack)]), context=CTX)
+            elif flags and "C" in flags:
+                vy_print(
+                    "\n".join(centre([vy_str(n) for n in pop(CTX.stack)])), context=CTX
+                )
+            elif flags and "l" in flags:
+                vy_print(len(pop(CTX.stack)), context=CTX)
+            elif flags and "G" in flags:
+                vy_print(vy_max(pop(CTX.stack, context=CTX)), context=CTX)
+            elif flags and "g" in flags:
+                vy_print(vy_min(pop(CTX.stack, context=CTX)), context=CTX)
+            elif flags and "W" in flags:
+                vy_print(CTX.stack, context=CTX)
+            elif CTX._vertical_join:
+                vy_print(vertical_join(pop(CTX.stack, context=CTX)), context=CTX)
+            elif CTX._join:
+                vy_print(
+                    "\n".join([vy_str(n) for n in pop(CTX.stack, context=CTX)]),
+                    context=CTX,
+                )
+            elif flags and "J" in flags:
+                vy_print("\n".join([vy_str(n) for n in CTX.stack]), context=CTX)
+            else:
+                vy_print(pop(CTX.stack, context=CTX), context=CTX)
+
     except SystemExit:
         if "o" not in flags:
             return
     except Exception as e:
-        CTX.output[2] += "\n" + str(e)
-        CTX.output[
-            2
-        ] += f"\nMost recently popped arguments: {[deref(i, limit=10) for i in CTX.last_popped]}"
-        CTX.output[2] += f"\nFinal stack: {[deref(i, limit=10) for i in CTX.stack]}"
+        stderr.write("\n" + str(e))
+        stderr.write(
+            "\nMost recently popped arguments: {[deref(i, limit=10) for i in CTX.last_popped]}"
+        )
+        stderr.write(f"\nFinal stack: {[deref(i, limit=10) for i in CTX.stack]}")
         raise e
-
-    if (not CTX.printed and "O" not in flags) or "o" in flags:
-        if flags and "s" in flags:
-            vy_print(summate(pop(CTX.stack)))
-        elif flags and "…" in flags:
-            top = pop(CTX.stack)
-            if vy_type(top) in (list, Generator):
-                vy_print(top[:100])
-            else:
-                vy_print(top)
-        elif flags and "ṡ" in flags:
-            vy_print(" ".join([vy_str(n) for n in CTX.stack]))
-        elif flags and "d" in flags:
-            vy_print(summate(flatten(pop(CTX.stack))))
-        elif flags and "Ṫ" in flags:
-            vy_print(summate(CTX.stack))
-        elif flags and "S" in flags:
-            vy_print(" ".join([vy_str(n) for n in pop(CTX.stack)]))
-        elif flags and "C" in flags:
-            vy_print("\n".join(centre([vy_str(n) for n in pop(CTX.stack)])))
-        elif flags and "l" in flags:
-            vy_print(len(pop(CTX.stack)))
-        elif flags and "G" in flags:
-            vy_print(vy_max(pop(CTX.stack)))
-        elif flags and "g" in flags:
-            vy_print(vy_min(pop(CTX.stack)))
-        elif flags and "W" in flags:
-            vy_print(CTX.stack)
-        elif CTX._vertical_join:
-            vy_print(vertical_join(pop(CTX.stack)))
-        elif CTX._join:
-            vy_print("\n".join([vy_str(n) for n in pop(CTX.stack)]))
-        elif flags and "J" in flags:
-            vy_print("\n".join([vy_str(n) for n in CTX.stack]))
-        else:
-            vy_print(pop(CTX.stack))
 
 
 if __name__ == "__main__":
@@ -452,6 +467,7 @@ if __name__ == "__main__":
     file_location = ""
     flags = ""
     CTX.inputs = []
+
     header = (
         inspect.cleandoc(
             """
@@ -487,7 +503,7 @@ if __name__ == "__main__":
             CTX.context_level = 0
             line = vy_compile(line, vyxal_imports + header)
             exec(line)
-            vy_print(CTX.stack)
+            vy_print(CTX.stack, context=CTX)
     elif file_location == "h":
         print(
             "\nUsage: python3 Vyxal.py <file> <flags (single string of flags)> <input(s) (if not from STDIN)>"
@@ -575,4 +591,4 @@ if __name__ == "__main__":
             elif flags and "J" in flags:
                 print("\n".join([vy_str(n) for n in CTX.stack]))
             else:
-                vy_print(pop(CTX.stack))
+                vy_print(pop(CTX.stack, context=CTX), context=CTX)

@@ -3,7 +3,6 @@ import functools
 import inspect
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from vyxal.vy_globals import CTX
 from vyxal import words
 
 # Generic type constants
@@ -192,27 +191,27 @@ class Generator:
         self.generated = []
         return d
 
-    def _print(self, end="\n"):
+    def _print(self, end="\n", context=None):
         from vyxal.builtins import vy_print
 
         main = self.generated
         try:
             f = next(self)
             # If we're still going, there's stuff in main that needs printing before printing the generator
-            vy_print("⟨", end="")
+            vy_print("⟨", end="", context=context)
             for i in range(len(main)):
-                vy_print(main[i], end="|" * (i >= len(main)))
+                vy_print(main[i], end="|" * (i >= len(main)), context=context)
             while True:
                 try:
                     f = next(self)
-                    vy_print("|", end="")
-                    vy_print(f, end="")
+                    vy_print("|", end="", context=context)
+                    vy_print(f, end="", context=context)
                 except:
                     break
-            vy_print("⟩", end=end)
+            vy_print("⟩", end=end, context=context)
 
         except:
-            vy_print(main, end=end)
+            vy_print(main, end=end, context=context)
 
     def zip_with(self, other):
         return Generator(zip(self.gen, iter(other)))

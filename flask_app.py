@@ -37,7 +37,7 @@ def execute():
     print(sessions, request.form)
     flags = request.form["flags"]
     code = request.form["code"].replace("\r", "")
-    input_list = request.form["inputs"].replace("\r", "")
+    input_list = request.form["inputs"].replace("\r", "") or ""
     header = request.form["header"].replace("\r", "")
     footer = request.form["footer"].replace("\r", "")
     session = request.form["session"]
@@ -59,8 +59,6 @@ def execute():
     with open(f"sessions/{session}/.stdin", "r", encoding="utf-8") as x:
         with open(f"sessions/{session}/.stdout", "w", encoding="utf-8") as y:
             with open(f"sessions/{session}/.stderr", "w", encoding="utf-8") as z:
-                manager = multiprocessing.Manager()
-                ret = manager.dict()
 
                 if "5" in flags:
                     time = 5
@@ -72,30 +70,33 @@ def execute():
                     time = 30
                 else:
                     time = 10
-                ret[1] = ""
-                ret[2] = ""
+
                 fcode = (
                     (header and (header + "\n")) + code + (footer and ("\n" + footer))
                 )
                 sessions[session] = multiprocessing.Process(
                     target=vyxal.interpreter.execute,
-                    args=(fcode, flags, input_list, ret),
+                    args=(
+                        fcode,
+                        flags,
+                        input_list,
+                        f"sessions/{session}/.stdout",
+                        f"sessions/{session}/.stderr",
+                    ),
                 )
+                print("starting")
                 sessions[session].start()
+                print("joining")
                 sessions[session].join(time)
 
                 if session in terminated:
                     terminated.remove(session)
-                    ret[2] += "\nSession terminated upon user request"
+                    z.write("\nSession terminated upon user request")
 
                 if sessions[session].is_alive():
 
                     sessions[session].kill()
-                    if 2 in ret:
-                        ret[2] += "\n" + f"Code timed out after {time} seconds"
-                print(len(ret[1]))
-                y.write(ret[1])
-                z.write(ret[2])
+                    z.write("\n" + f"Code timed out after {time} seconds")
     with open(f"sessions/{session}/.stdout", "r", encoding="utf-8") as x:
         with open(f"sessions/{session}/.stderr", "r", encoding="utf-8") as y:
             val = {"stdout": x.read(), "stderr": y.read()}
