@@ -21,7 +21,7 @@ except ImportError:
     import sympy
 
 
-def at_least_n_dims(vector, n):
+def at_least_n_dims(vector, n, context=None):
     """Check if an array has at least n dimensions"""
     if n == 0:
         return 1
@@ -37,7 +37,7 @@ def at_least_n_dims(vector, n):
 
 
 @rearrange_for_types([(Number, list), (Number, Generator)])
-def cartesian_power(vector, exp):
+def cartesian_power(vector, exp, context=None):
     vec_type, exp_type = vy_type(vector), vy_type(exp)
 
     if vec_type in (list, Generator):
@@ -64,7 +64,7 @@ def cartesian_power(vector, exp):
         )
 
 
-def cartesian_product(lhs, rhs):
+def cartesian_product(lhs, rhs, context=None):
     if Function not in (vy_type(lhs), vy_type(rhs)):
         if (vy_type(lhs), vy_type(rhs)) in (
             (Number, Number),
@@ -135,11 +135,11 @@ def cartesian_product(lhs, rhs):
     return gen()[-1]
 
 
-def cumulative_sum(vector):
+def cumulative_sum(vector, context=None):
     return scanl_by_axis(vyxal.builtins.add, vector, axis=0)
 
 
-def deref(item, generator_to_list=True, limit=-1):
+def deref(item, generator_to_list=True, limit=-1, context=None):
     if vy_type(item) is Generator:
         if limit != -1:
             return item.limit_to_items(limit)
@@ -149,7 +149,7 @@ def deref(item, generator_to_list=True, limit=-1):
     return item
 
 
-def determinant(matrix):
+def determinant(matrix, context=None):
     det = numpy.linalg.det(numpy.asarray(deref(matrix)))
     # If it's a number, don't convert to list
     if isinstance(matrix, numpy.number):
@@ -158,7 +158,7 @@ def determinant(matrix):
         return det.tolist()
 
 
-def diagonals(vector):
+def diagonals(vector, context=None):
     # Getting real heavy Mornington Crescent vibes from this
     # joke explanation: the diagonals are the most important part of the game
     vector = numpy.asarray(vector)
@@ -179,20 +179,20 @@ def diagonals(vector):
         diagonal = numpy.diag(vector, k=diag_num)
 
 
-def diagonal_main(matrix):
+def diagonal_main(matrix, context=None):
     return numpy.asarray(matrix).diagonal().tolist()
 
 
-def diagonal_anti(matrix):
+def diagonal_anti(matrix, context=None):
     flipped = numpy.fliplr(numpy.asarray(matrix)).diagonal().tolist()
     return flipped
 
 
-def dot_product(lhs, rhs):
+def dot_product(lhs, rhs, context=None):
     return summate(vyxal.builtins.multiply(lhs, rhs))
 
 
-def first_n(func, n=None):
+def first_n(func, n=None, context=None):
     if Function not in (type(func), type(n)):
         if n:
             return iterable(func)[n:]
@@ -215,7 +215,7 @@ def first_n(func, n=None):
     return ret
 
 
-def foldl_by_axis(fn, vector, axis, init=None):
+def foldl_by_axis(fn, vector, axis, init=None, context=None):
     if axis > 0:
         return map_norm(
             lambda inner_arr: foldl_by_axis(fn, inner_arr, axis - 1, init=init), vector
@@ -231,7 +231,7 @@ def foldl_by_axis(fn, vector, axis, init=None):
 
 
 @rearrange_for_types([(list, Function), (Generator, Function)])
-def foldl_cols(fn, vector, init=None):
+def foldl_cols(fn, vector, init=None, context=None):
     """
     Fold each column of a matrix from top to bottom, possibly with a starting value.
     TODO generalize to multiple dimensions
@@ -276,11 +276,11 @@ def foldl_cols(fn, vector, init=None):
     raise ValueError("Expected list or generator, cannot fold the columns of an atom")
 
 
-def foldl_first(fn, vector, init=None):
+def foldl_first(fn, vector, init=None, context=None):
     return foldl_by_axis(fn, vector, 0, init)
 
 
-def foldl_rows(fn, vector, init=None):
+def foldl_rows(fn, vector, init=None, context=None):
     """
     Fold each row of a matrix from the left, possibly with a starting value.
     """
@@ -318,7 +318,7 @@ def foldl_rows(fn, vector, init=None):
             return acc
 
 
-def foldr_by_axis(fn, vector, axis, init=None):
+def foldr_by_axis(fn, vector, axis, init=None, context=None):
     if axis > 0:
         return map_norm(
             lambda inner_arr: foldr_by_axis(fn, inner_arr, axis - 1, init=init), vector
@@ -337,7 +337,7 @@ def foldr_by_axis(fn, vector, axis, init=None):
     return acc
 
 
-def foldr_cols(fn, vector, init=None):
+def foldr_cols(fn, vector, init=None, context=None):
     """
     Fold each column of a matrix from top to bottom, possibly with a starting value.
     TODO generalize to multiple dimensions
@@ -361,11 +361,11 @@ def foldr_cols(fn, vector, init=None):
     return res
 
 
-def foldr_first(fn, vector, init=None):
+def foldr_first(fn, vector, init=None, context=None):
     return foldr_by_axis(fn, vector, 0, init)
 
 
-def foldr_rows(fn, vector, init=None):
+def foldr_rows(fn, vector, init=None, context=None):
     """
     Fold each row of a matrix from the left, possibly with a starting value.
     """
@@ -398,7 +398,7 @@ def foldr_rows(fn, vector, init=None):
     return acc
 
 
-def group_consecutive(vector):
+def group_consecutive(vector, context=None):
     ret = []
     temp = [vector[0]]
     last = vector[0]
@@ -416,7 +416,7 @@ def group_consecutive(vector):
     return ret
 
 
-def inclusive_range(lhs, rhs):
+def inclusive_range(lhs, rhs, context=None):
     types = (vy_type(lhs), vy_type(rhs))
     if Function in types:
         if types[0] is Function:
@@ -444,7 +444,7 @@ def inclusive_range(lhs, rhs):
         return Generator(range(int(lhs), int(rhs) - 1, -1))
 
 
-def index(vector, index):
+def index(vector, index, context=None):
     types = vy_type(vector), vy_type(index)
     if Function in types:
         if types[0] is Function:
@@ -472,7 +472,7 @@ def index(vector, index):
         return [vector, index, vyxal.builtins.join(vector, index)]
 
 
-def indexed_into(vector, indices):
+def indexed_into(vector, indices, context=None):
     types = (vy_type(vector), vy_type(indices))
     if Function not in types:
         ret = []
@@ -498,7 +498,7 @@ def indexed_into(vector, indices):
         return gen()[-1]
 
 
-def indices_where(fn, vector):
+def indices_where(fn, vector, context=None):
     ret = []
     for i in range(len(vector)):
         if fn([vector[i]])[-1]:
@@ -522,7 +522,7 @@ def interleave(lhs, rhs):
     return ret
 
 
-def map_at(function, vector, indices):
+def map_at(function, vector, indices, context=None):
     @Generator
     def gen():
         for pos, element in enumerate(vector):
@@ -534,7 +534,7 @@ def map_at(function, vector, indices):
     return gen()
 
 
-def map_every_n(vector, function, index):
+def map_every_n(vector, function, index, context=None):
     @Generator
     def gen():
         for pos, element in enumerate(vector):
@@ -546,7 +546,7 @@ def map_every_n(vector, function, index):
     return gen()
 
 
-def map_norm(fn, vector):
+def map_norm(fn, vector, context=None):
     vec_type = vy_type(vector)
     if vec_type is Generator:
 
@@ -562,7 +562,7 @@ def map_norm(fn, vector):
         return Generator(map(fn, vector))
 
 
-def matrix_multiply(lhs, rhs):
+def matrix_multiply(lhs, rhs, context=None):
     transformed_right = deref(transpose(rhs))
     ret = []
 
@@ -574,7 +574,7 @@ def matrix_multiply(lhs, rhs):
     return ret
 
 
-def mold(content, shape):
+def mold(content, shape, context=None):
     # https://github.com/DennisMitchell/jellylanguage/blob/70c9fd93ab009c05dc396f8cc091f72b212fb188/jelly/interpreter.py#L578
     for index in range(len(shape)):
         if type(shape[index]) == list:
@@ -594,7 +594,7 @@ def non_negative_integers():
         num += 1
 
 
-def nub_sieve(vector):
+def nub_sieve(vector, context=None):
     @Generator
     def gen():
         occurances = {}
@@ -608,7 +608,7 @@ def nub_sieve(vector):
     return gen()
 
 
-def partition(item, I=1):
+def partition(item, I=1, context=None):
     # https://stackoverflow.com/a/44209393/9363594
     yield [item]
     for i in range(I, item // 2 + 1):
@@ -616,7 +616,7 @@ def partition(item, I=1):
             yield [i] + p
 
 
-def permutations(vector):
+def permutations(vector, context=None):
     t_vector = vy_type(vector)
     vector = itertools.permutations(vector)
 
@@ -625,7 +625,7 @@ def permutations(vector):
     return Generator(vector)
 
 
-def powerset(vector):
+def powerset(vector, context=None):
     "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
     if type(vector) is Generator:
         vector = vector._dereference()
@@ -638,17 +638,17 @@ def powerset(vector):
     )
 
 
-def prefixes(vector):
+def prefixes(vector, context=None):
     for i in range(len(iterable(vector))):
         yield iterable(vector)[0 : i + 1]
 
 
-def run_length_encode(item):
+def run_length_encode(item, context=None):
     item = group_consecutive(iterable(item))
     return Generator(map(lambda x: [x[0], len(x)], item))
 
 
-def scanl_by_axis(fn, vector, axis, init=None):
+def scanl_by_axis(fn, vector, axis, init=None, context=None):
     """
     Cumulative reduce from the left
     With axis=0, vector is treated as a 1-D list,
@@ -673,11 +673,11 @@ def scanl_by_axis(fn, vector, axis, init=None):
     return acc
 
 
-def scanl_first(fn, vector, init=None):
+def scanl_first(fn, vector, init=None, context=None):
     return scanl_by_axis(fn, vector, 0, init)
 
 
-def scanl_rows(fn, vector, init=None):
+def scanl_rows(fn, vector, init=None, context=None):
     """
     Fold each row of a matrix from the left, possibly with a starting value.
     """
@@ -719,7 +719,7 @@ def scanl_rows(fn, vector, init=None):
             return acc
 
 
-def scanr_by_axis(fn, vector, axis, init=None):
+def scanr_by_axis(fn, vector, axis, init=None, context=None):
     """
     Cumulative reduce from the left
     With axis=0, vector is treated as a 1-D list,
@@ -748,11 +748,11 @@ def scanr_by_axis(fn, vector, axis, init=None):
     return acc
 
 
-def scanr_first(fn, vector, init=None):
+def scanr_first(fn, vector, init=None, context=None):
     return scanr_by_axis(fn, vector, 0, init)
 
 
-def scanr_rows(fn, vector, init=None):
+def scanr_rows(fn, vector, init=None, context=None):
     """
     Fold each row of a matrix from the left, possibly with a starting value.
     """
@@ -789,7 +789,7 @@ def scanr_rows(fn, vector, init=None):
     return acc
 
 
-def sublists(item):
+def sublists(item, context=None):
     yield []
     length = len(item)
     for size in range(1, length + 1):
@@ -797,7 +797,7 @@ def sublists(item):
             yield item[sub : sub + size]
 
 
-def summate(vector):
+def summate(vector, context=None):
     vector = iterable(vector)
     if type(vector) is Generator:
         return vector._reduce(vyxal.builtins.add)
@@ -810,14 +810,14 @@ def summate(vector):
         return 0
 
 
-def sums(vector):
+def sums(vector, context=None):
     ret = []
     for i in range(len(vector)):
         ret.append(summate(vector[0 : i + 1]))
     return ret
 
 
-def transpose(vector):
+def transpose(vector, context=None):
     # https://github.com/DennisMitchell/jellylanguage/blob/70c9fd93ab009c05dc396f8cc091f72b212fb188/jelly/interpreter.py#L1311
     vector = iterable(vector)
     vector = list(vector)
@@ -829,7 +829,7 @@ def transpose(vector):
     )
 
 
-def uninterleave(item):
+def uninterleave(item, context=None):
     left, right = [], []
     for i in range(len(item)):
         if i % 2 == 0:
@@ -841,7 +841,7 @@ def uninterleave(item):
     return [left, right]
 
 
-def uniquify(vector):
+def uniquify(vector, context=None):
     seen = []
     for item in vector:
         if item not in seen:
@@ -849,7 +849,7 @@ def uniquify(vector):
             seen.append(item)
 
 
-def zip_with2(fn, xs, ys):
+def zip_with2(fn, xs, ys, context=None):
     xs_type, ys_type = vy_type(xs), vy_type(ys)
     # Convert both to Generators if not already
     xs = xs if xs_type is Generator else Generator((x for x in xs))
@@ -866,7 +866,7 @@ def zip_with2(fn, xs, ys):
     return gen()
 
 
-def zip_with_multi(fn, lists):
+def zip_with_multi(fn, lists, context=None):
     lists = [
         lst if vy_type(lst) is Generator else Generator((x for x in lst))
         for lst in lists

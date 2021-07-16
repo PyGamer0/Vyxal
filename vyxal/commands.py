@@ -64,7 +64,9 @@ def fn_to_cmd(fn: Union[Callable, str], arity: int) -> Tuple[str, int]:
     :param arity The arity of the function
     """
     fn_name = fn if isinstance(fn, str) else fn.__name__
-    return make_cmd(lambda var_names: f"{fn_name}({', '.join(var_names)})", arity)
+    return make_cmd(
+        lambda var_names: f"{fn_name}({', '.join(var_names)}, context=CTX)", arity
+    )
 
 
 command_dict = {

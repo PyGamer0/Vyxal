@@ -36,7 +36,7 @@ def tapp(x):
     else:
         print(x)
 
-    print(CTX.stack)
+    print(context.stack)
     return x
 
 
@@ -637,25 +637,25 @@ def gcd(lhs, rhs=None, context=None):
 
 
 def get_input(predefined_level=None, context=None):
-    level = CTX.input_level
+    level = context.input_level
     if predefined_level is not None:
         level = predefined_level
 
-    if level in CTX.input_values:
-        source, index = CTX.input_values[level]
+    if level in context.input_values:
+        source, index = context.input_values[level]
     else:
         source, index = [], -1
     if source:
         ret = source[index % len(source)]
-        CTX.input_values[level][1] += 1
+        context.input_values[level][1] += 1
 
-        if CTX.keg_mode and type(ret) is str:
+        if context.keg_mode and type(ret) is str:
             return [ord(c) for c in ret]
         return ret
     else:
         try:
             temp = vy_eval(input())
-            if CTX.keg_mode and type(temp) is str:
+            if context.keg_mode and type(temp) is str:
                 return [ord(c) for c in temp]
             return temp
         except:
@@ -1208,18 +1208,18 @@ def repeat(vector, times, extra=None, context=None):
         if t_vector is str:
             return vector[::-1] * times
         elif t_vector is Number:
-            CTX.safe_mode = True
+            context.safe_mode = True
             temp = vy_eval(str(reverse(vector)) * times)
-            CTX.safe_mode = False
+            context.safe_mode = False
             return temp
         return Generator(itertools.repeat(reversed(vector), times))
     else:
         if t_vector is str:
             return vector * times
         elif t_vector is Number:
-            CTX.safe_mode = True
+            context.safe_mode = True
             temp = vy_eval(str(reverse(vector)) * times)
-            CTX.safe_mode = False
+            context.safe_mode = False
             return temp
         return Generator(itertools.repeat(vector, times))
 
@@ -1672,14 +1672,14 @@ def vy_eval(item, context=None):
     elif vy_type(item) in [list, Generator]:
         return vectorise(vy_eval, item)
 
-    if CTX.online_version or CTX.safe_mode:
+    if context.online_version or context.safe_mode:
         from vyxal.interpreter import vy_compile
         from vyxal.parser import Structure, Tokenise
 
         try:
             return pwn.safeeval.const(item)
         except:
-            f = Tokenise(item, CTX.variables_are_digraphs)
+            f = Tokenise(item, context.variables_are_digraphs)
             if len(f) and f[-1][-1] in (
                 Structure.STRING,
                 Structure.NUMBER,
@@ -1687,9 +1687,9 @@ def vy_eval(item, context=None):
             ):
                 try:
                     temp = vy_compile(item, vyxal_imports)
-                    CTX.stack = []
+                    context.stack = []
                     exec(temp)
-                    return CTX.stack[-1]
+                    return context.stack[-1]
                 except Exception as e:
                     print(e)
                     return item
@@ -1774,7 +1774,7 @@ def vy_map(fn, vector, context=None):
 
     vec, function = (fn, vector) if t_vector is Function else (vector, fn)
     if vy_type(vec) == Number:
-        vec = range(CTX.MAP_START, int(vec) + CTX.MAP_OFFSET)
+        vec = range(context.MAP_START, int(vec) + context.MAP_OFFSET)
 
     if vy_type(vec) is Generator:
 
@@ -1954,7 +1954,7 @@ def vy_str(item, context=None):
         str: lambda x: x,
         list: lambda x: "⟨" + "|".join([vy_repr(y) for y in x]) + "⟩",
         Generator: lambda x: vy_str(x._dereference()),
-        Function: lambda x: vy_str(function_call(x, CTX.stack)[0]),
+        Function: lambda x: vy_str(function_call(x, context.stack)[0]),
     }[t_item](item)
 
 
