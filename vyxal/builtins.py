@@ -1100,7 +1100,7 @@ def pop(vector, num=1, wrap=False, ctx=None):
         if vector:
             ret.append(vector.pop())
         else:
-            x = get_input()
+            x = get_input(ctx=ctx)
             ret.append(x)
 
     if ctx is not None and ctx.retain_items:
