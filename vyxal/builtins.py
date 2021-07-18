@@ -50,13 +50,13 @@ def add(lhs, rhs, ctx=None):
         (str, str): lambda: lhs + rhs,
         (str, Number): lambda: str(lhs) + str(rhs),
         (Number, str): lambda: str(lhs) + str(rhs),
-    }.get(types, lambda: vectorise(add, lhs, rhs))()
+    }.get(types, lambda: vectorise(add, lhs, rhs, context=ctx))()
 
 
 def all_combinations(vector, ctx=None):
     ret = []
     for i in range(len(vector) + 1):
-        ret = join(ret, combinations_replace_generate(vector, i))
+        ret = join(ret, combinations_replace_generate(vector, i, ctx=ctx))
     return ret
 
 
@@ -69,7 +69,7 @@ def all_prime_factors(item, ctx=None):
         return out
     elif vy_type(item) is str:
         return item.title()
-    return vectorise(all_prime_factors, item)
+    return vectorise(all_prime_factors, item, ctx=ctx)
 
 
 def apply_to_register(function, vector, ctx):
@@ -78,7 +78,7 @@ def apply_to_register(function, vector, ctx):
         top, over = pop(ctx.stack, 2)
         ctx.stack.append(top)
         ctx.stack.append(over)
-    vector += function_call(function, vector)
+    vector += function_call(function, vector, ctx=ctx)
     ctx.register = pop(vector)
 
 
@@ -88,7 +88,7 @@ def assigned(vector, index, item, ctx=None):
         vector[index] = item
         return "".join([str(x) for x in vector])
     else:
-        temp = array_builtins.deref(vector, False)
+        temp = array_builtins.deref(vector, False, ctx=ctx)
         temp[index] = item
         return temp
 
@@ -122,13 +122,7 @@ def bit_and(lhs, rhs, ctx=None):
         (Number, str): lambda: rhs.center(lhs),
         (str, Number): lambda: lhs.center(rhs),
         (str, str): lambda: lhs.center(len(rhs) - len(lhs)),
-        (types[0], list): lambda: [bit_and(lhs, item) for item in rhs],
-        (list, types[1]): lambda: [bit_and(item, rhs) for item in lhs],
-        (list, list): lambda: list(map(lambda x: bit_and(*x), vy_zip(lhs, rhs))),
-        (list, Generator): lambda: two_argument(bit_and, lhs, rhs),
-        (Generator, list): lambda: two_argument(bit_and, lhs, rhs),
-        (Generator, Generator): lambda: two_argument(bit_and, lhs, rhs),
-    }.get(types, lambda: vectorise(bit_and, lhs, rhs))()
+    }.get(types, lambda: vectorise(bit_and, lhs, rhs, ctx=ctx))()
 
 
 def bit_or(lhs, rhs, ctx=None):
@@ -145,20 +139,14 @@ def bit_or(lhs, rhs, ctx=None):
         (Number, Number): lambda: lhs | rhs,
         (Number, str): lambda: lhs[:rhs] + lhs[rhs + 1 :],
         (str, Number): lambda: rhs[:lhs] + rhs[lhs + 1 :],
-        (types[0], list): lambda: [bit_or(lhs, item) for item in rhs],
-        (list, types[1]): lambda: [bit_or(item, rhs) for item in lhs],
-        (list, list): lambda: list(map(lambda x: bit_or(*x), vy_zip(lhs, rhs))),
-        (list, Generator): lambda: two_argument(bit_or, lhs, rhs),
-        (Generator, list): lambda: two_argument(bit_or, lhs, rhs),
-        (Generator, Generator): lambda: two_argument(bit_or, lhs, rhs),
-    }.get(types, lambda: vectorise(bit_or, lhs, rhs))()
+    }.get(types, lambda: vectorise(bit_or, lhs, rhs, ctx=ctx))()
 
 
 def bit_not(item, ctx=None):
     return {
         str: lambda: int(any(map(lambda x: x.isupper(), item))),
         Number: lambda: ~item,
-    }.get(vy_type(item), lambda: vectorise(bit_not, item))()
+    }.get(vy_type(item), lambda: vectorise(bit_not, item, ctx=ctx))()
 
 
 def bit_xor(lhs, rhs, ctx=None):
@@ -168,23 +156,17 @@ def bit_xor(lhs, rhs, ctx=None):
         (Number, str): lambda: (" " * lhs) + rhs,
         (str, Number): lambda: lhs + (" " * rhs),
         (str, str): lambda: levenshtein_distance(lhs, rhs),
-        (types[0], list): lambda: [bit_xor(lhs, item) for item in rhs],
-        (list, types[1]): lambda: [bit_xor(item, rhs) for item in lhs],
-        (list, list): lambda: list(map(lambda x: bit_xor(*x), vy_zip(lhs, rhs))),
-        (list, Generator): lambda: two_argument(bit_xor, lhs, rhs),
-        (Generator, list): lambda: two_argument(bit_xor, lhs, rhs),
-        (Generator, Generator): lambda: two_argument(bit_xor, lhs, rhs),
-    }.get(types, lambda: vectorise(bit_xor, lhs, rhs))()
+    }.get(types, lambda: vectorise(bit_xor, lhs, rhs, ctx=ctx))()
 
 
 def ceiling(item, ctx=None):
     return {Number: lambda: math.ceil(item), str: lambda: item.split(" ")}.get(
-        vy_type(item), lambda: vectorise(ceiling, item)
+        vy_type(item), lambda: vectorise(ceiling, item, ctx=ctx)
     )()
 
 
 def centre(vector, ctx=None):
-    vector = array_builtins.deref(iterable(vector), True)
+    vector = array_builtins.deref(iterable(vector, ctx=ctx), True, ctx=ctx)
     focal = max(map(len, vector))
 
     @Generator
@@ -202,11 +184,11 @@ def chrord(item, ctx=None):
     elif t_item == Number:
         return chr(int(item))
     else:
-        return Generator(map(chrord, item))
+        return vectorise(chrord, item, ctx=ctx)
 
 
 def closest_prime(item, ctx=None):
-    up, down = next_prime(item), prev_prime(item)
+    up, down = next_prime(item, ctx=ctx), prev_prime(item, ctx=ctx)
     if abs(item - down) < abs(item - up):
         return down
     return up
@@ -220,25 +202,29 @@ def compare(lhs, rhs, mode, ctx=None):
         types: lambda lhs, rhs: eval(f"lhs {op} rhs"),
         (Number, str): lambda lhs, rhs: eval(f"str(lhs) {op} rhs"),
         (str, Number): lambda lhs, rhs: eval(f"lhs {op} str(rhs)"),
-        (types[0], list): lambda *x: [compare(lhs, item, mode) for item in rhs],
-        (list, types[1]): lambda *x: [compare(item, rhs, mode) for item in lhs],
+        (types[0], list): lambda *x: [
+            compare(lhs, item, mode, ctx=ctx) for item in rhs
+        ],
+        (list, types[1]): lambda *x: [
+            compare(item, rhs, mode, ctx=ctx) for item in lhs
+        ],
         (Generator, types[1]): lambda *y: vectorise(
-            lambda x: compare(x, rhs, mode), lhs
+            lambda x: compare(x, rhs, mode, ctx=ctx), lhs
         ),
         (types[0], Generator): lambda *y: vectorise(
-            lambda x: compare(lhs, x, mode), rhs
+            lambda x: compare(lhs, x, mode, ctx=ctx), rhs
         ),
         (list, list): lambda *y: list(
-            map(lambda x: compare(*x, mode), vy_zip(lhs, rhs))
+            map(lambda x: compare(*x, mode, ctx=ctx), vy_zip(lhs, rhs))
         ),
         (list, Generator): lambda *y: Generator(
-            map(lambda x: compare(*x, mode), vy_zip(lhs, rhs))
+            map(lambda x: compare(*x, mode, ctx=ctx), vy_zip(lhs, rhs))
         ),
         (Generator, list): lambda *y: Generator(
-            map(lambda x: compare(*x, mode), vy_zip(lhs, rhs))
+            map(lambda x: compare(*x, mode, ctx=ctx), vy_zip(lhs, rhs))
         ),
         (Generator, Generator): lambda *y: Generator(
-            map(lambda x: compare(*x, mode), vy_zip(lhs, rhs))
+            map(lambda x: compare(*x, mode, ctx=ctx), vy_zip(lhs, rhs))
         ),
     }[types](lhs, rhs)
     if type(boolean) is bool:

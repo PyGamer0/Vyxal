@@ -45,7 +45,7 @@ def wrap_in_lambda(tokens):
         return [(Structure.LAMBDA, {Keys.LAMBDA_BODY: tokens})]
 
 
-def vy_compile(program, header=""):
+def vy_compile(program, header="", context="CTX"):
     if not program:
         return (
             header or "pass"
@@ -60,9 +60,7 @@ def vy_compile(program, header=""):
         token_name, token_value = token
         if token_name == Structure.NONE:
             if token_value[0] == Digraphs.CODEPAGE:
-                compiled += (
-                    f"CTX.stack.append({codepage.find(str(token_value[1]))} + 101)"
-                )
+                compiled += f"{context}.stack.append({codepage.find(str(token_value[1]))} + 101)"
             else:
                 compiled += command_dict.get(token[1], "  ")[0]
         elif token_name == Structure.NUMBER:
@@ -162,20 +160,24 @@ def vy_compile(program, header=""):
                 compiled += (
                     "def FN_" + function_name + "(parameter_stack, arity=None):\n"
                 )
-                compiled += tab("CTX.context_level += 1") + NEWLINE
-                compiled += tab("CTX.input_level += 1") + NEWLINE
+                compiled += (
+                    tab("Main_CTX.context_level += 1; CTX = Context()") + NEWLINE
+                )
+                compiled += tab("Main_CTX.input_level += 1") + NEWLINE
                 compiled += tab(f"this_function = FN_{function_name}") + NEWLINE
                 if parameter_count == 1:
                     # There's only one parameter, so instead of pushing it as a list
                     # (which is kinda rather inconvienient), push it as a "scalar"
 
-                    compiled += tab("CTX.context_values.append(parameter_stack[-1])")
+                    compiled += tab(
+                        "Main_CTX.context_values.append(parameter_stack[-1])"
+                    )
                 elif parameter_count != -1:
                     compiled += tab(
-                        f"CTX.context_values.append(parameter_stack[:-{parameter_count}])"
+                        f"Main_CTX.context_values.append(parameter_stack[:-{parameter_count}])"
                     )
                 else:
-                    compiled += tab("CTX.context_values.append(parameter_stack)")
+                    compiled += tab("Main_CTX.context_values.append(parameter_stack)")
 
                 compiled += NEWLINE
 
@@ -203,14 +205,15 @@ else:
 
                 compiled += tab("CTX.stack = parameters[::]") + NEWLINE
                 compiled += (
-                    tab("CTX.input_values[CTX.input_level] = [CTX.stack[::], 0]")
+                    tab("Main_CTX.input_values[CTX.input_level] = [CTX.stack[::], 0]")
                     + NEWLINE
                 )
                 compiled += tab(vy_compile(token_value[Keys.FUNC_BODY])) + NEWLINE
                 compiled += (
-                    tab("CTX.context_level -= 1; CTX.context_values.pop()") + NEWLINE
+                    tab("Main_CTX.context_level -= 1; Main_CTX.context_values.pop()")
+                    + NEWLINE
                 )
-                compiled += tab("CTX.input_level -= 1") + NEWLINE
+                compiled += tab("Main_CTX.input_level -= 1") + NEWLINE
                 compiled += tab("return CTX.stack")
         elif token_name == Structure.LAMBDA:
             defined_arity = 1
@@ -223,10 +226,10 @@ else:
                 f"def _lambda_{signature}(parameter_stack, arity=-1, self=None):"
                 + NEWLINE
             )
-            compiled += tab("CTX.context_level += 1") + NEWLINE
-            compiled += tab("CTX.input_level += 1") + NEWLINE
+            compiled += tab("Main_CTX.context_level += 1") + NEWLINE
+            compiled += tab("Main_CTX.input_level += 1") + NEWLINE
             compiled += tab(f"this_function = _lambda_{signature}") + NEWLINE
-            compiled += tab("stored = False") + NEWLINE
+            compiled += tab("stored = False; CTX = Context()") + NEWLINE
             compiled += (
                 tab("if 'stored_arity' in dir(self): stored = self.stored_arity;")
                 + NEWLINE
@@ -257,16 +260,18 @@ else:
                     )
                     + NEWLINE
                 )
-            compiled += tab("CTX.context_values.append(parameters)") + NEWLINE
+            compiled += tab("Main_CTX.context_values.append(parameters)") + NEWLINE
             compiled += (
-                tab("CTX.input_values[CTX.input_level] = [CTX.stack[::], 0]") + NEWLINE
+                tab("Main_CTX.input_values[Main_CTX.input_level] = [CTX.stack[::], 0]")
+                + NEWLINE
             )
             compiled += tab(vy_compile(token_value[Keys.LAMBDA_BODY])) + NEWLINE
             compiled += tab("ret = [pop(CTX.stack)]") + NEWLINE
             compiled += (
-                tab("CTX.context_level -= 1; CTX.context_values.pop()") + NEWLINE
+                tab("Main_CTX.context_level -= 1; Main_CTX.context_values.pop()")
+                + NEWLINE
             )
-            compiled += tab("CTX.input_level -= 1") + NEWLINE
+            compiled += tab("Main_CTX.input_level -= 1") + NEWLINE
             compiled += tab("return ret") + NEWLINE
             compiled += f"_lambda_{signature}.stored_arity = {defined_arity}" + NEWLINE
             compiled += f"CTX.stack.append(_lambda_{signature})"
@@ -275,7 +280,10 @@ else:
             for element in token_value[Keys.LIST_ITEMS]:
                 if element:
                     compiled += "def list_lhs(parameter_stack):" + NEWLINE
-                    compiled += tab("CTX.stack = parameter_stack[::]") + NEWLINE
+                    compiled += (
+                        tab("CTX = Context(); CTX.stack = parameter_stack[::]")
+                        + NEWLINE
+                    )
                     compiled += tab(vy_compile(element)) + NEWLINE
                     compiled += tab("return pop(CTX.stack)") + NEWLINE
                     compiled += "temp_list.append(list_lhs(CTX.stack))" + NEWLINE
@@ -325,6 +333,7 @@ else:
 
 
 CTX = Context()
+Main_CTX = CTX
 
 
 def execute(code, flags, input_list, output_variable, stderr):

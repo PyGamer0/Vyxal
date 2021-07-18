@@ -275,7 +275,7 @@ def deep_vectorised(fn):
     return vectorised_fn
 
 
-def safe_apply(function, *args):
+def safe_apply(function, *args, ctx=None):
     """
     Applies function to args that adapts to the input style of the passed function.
 
@@ -298,7 +298,7 @@ def safe_apply(function, *args):
             return ret[-1]
         else:
             return []
-    return function(*args)
+    return function(*args, ctx=ctx)
 
 
 def _mangle(value):
@@ -480,33 +480,33 @@ def uncompress(s: str):
     return final.replace("\n", "\\n").replace("\r", "")
 
 
-def vectorise(fn, left, right=None, third=None, explicit=False):
+def vectorise(fn, left, right=None, third=None, explicit=False, ctx=None):
     if third is not None:
         types = (vy_type(left), vy_type(right))
 
         def gen():
             for pair in vy_zip(right, left):
-                yield safe_apply(fn, third, *pair)
+                yield safe_apply(fn, third, *pair, ctx=ctx)
 
         def expl(l, r):
             for item in l:
-                yield safe_apply(fn, third, r, item)
+                yield safe_apply(fn, third, r, item, ctx=ctx)
 
         def swapped_expl(l, r):
             for item in r:
-                yield safe_apply(fn, third, item, l)
+                yield safe_apply(fn, third, item, l, ctx=ctx)
 
         ret = {
             (types[0], types[1]): (
-                lambda: safe_apply(fn, left, right),
+                lambda: safe_apply(fn, left, right, ctx=ctx),
                 lambda: expl(iterable(left), right),
             ),
             (list, types[1]): (
-                lambda: [safe_apply(fn, x, right) for x in left],
+                lambda: [safe_apply(fn, x, right, ctx=ctx) for x in left],
                 lambda: expl(left, right),
             ),
             (types[0], list): (
-                lambda: [safe_apply(fn, left, x) for x in right],
+                lambda: [safe_apply(fn, left, x, ctx=ctx) for x in right],
                 lambda: swapped_expl(left, right),
             ),
             (Generator, types[1]): (
@@ -532,27 +532,27 @@ def vectorise(fn, left, right=None, third=None, explicit=False):
 
         def gen():
             for pair in vy_zip(left, right):
-                yield safe_apply(fn, *pair[::-1])
+                yield safe_apply(fn, *pair[::-1], ctx=ctx)
 
         def expl(l, r):
             for item in l:
-                yield safe_apply(fn, item, r)
+                yield safe_apply(fn, item, r, ctx=ctx)
 
         def swapped_expl(l, r):
             for item in r:
-                yield safe_apply(fn, l, item)
+                yield safe_apply(fn, l, item, ctx=ctx)
 
         ret = {
             (types[0], types[1]): (
-                lambda: safe_apply(fn, left, right),
+                lambda: safe_apply(fn, left, right, ctx=ctx),
                 lambda: expl(iterable(left), right),
             ),
             (list, types[1]): (
-                lambda: [safe_apply(fn, x, right) for x in left],
+                lambda: [safe_apply(fn, x, right, ctx=ctx) for x in left],
                 lambda: expl(left, right),
             ),
             (types[0], list): (
-                lambda: [safe_apply(fn, left, x) for x in right],
+                lambda: [safe_apply(fn, left, x, ctx=ctx) for x in right],
                 lambda: swapped_expl(left, right),
             ),
             (Generator, types[1]): (
@@ -580,13 +580,13 @@ def vectorise(fn, left, right=None, third=None, explicit=False):
             @Generator
             def gen():
                 for item in left:
-                    yield safe_apply(fn, item)
+                    yield safe_apply(fn, item, ctx=ctx)
 
             return gen()
         elif vy_type(left) in (str, Number):
-            return safe_apply(fn, list(iterable(left)))
+            return safe_apply(fn, list(iterable(left)), ctx=ctx)
         else:
-            ret = [safe_apply(fn, x) for x in left]
+            ret = [safe_apply(fn, x, ctx=ctx) for x in left]
             return ret
 
 

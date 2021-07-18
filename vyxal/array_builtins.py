@@ -798,13 +798,13 @@ def sublists(item, ctx=None):
 
 
 def summate(vector, ctx=None):
-    vector = iterable(vector)
+    vector = iterable(vector, ctx=ctx)
     if type(vector) is Generator:
         return vector._reduce(vyxal.builtins.add)
     if len(vector) > 0:
         ret = vector[0]
         for item in vector[1:]:
-            ret = vyxal.builtins.add(ret, item)
+            ret = vyxal.builtins.add(ret, item, ctx=ctx)
         return ret
     else:
         return 0

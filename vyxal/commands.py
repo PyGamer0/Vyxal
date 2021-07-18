@@ -47,12 +47,12 @@ def make_cmd(
             fn_call = to_fn_call
     else:
         fn_call = to_fn_call(var_names)
+
     if arity > 0:
         cmd = f"{', '.join(var_names[::-1])} = pop(CTX.stack, {arity}, ctx=CTX); "
     else:
         cmd = ""
-    # cmd += f"res = {fn_call}; CTX.stack.append(res);"
-    cmd += f"CTX.stack.append({fn_call});"
+    cmd += f"res = {fn_call}; CTX.stack.append(res);"
     return cmd, arity
 
 
@@ -532,12 +532,8 @@ else:
         "top = iterable(pop(CTX.stack)); CTX.stack.append(random.sample(top, len(top)))",
         1,
     ),
-    "Þ•": make_cmd(
-        "dot_product(iterable({}, ctx=CTX), iterable({}, ctx=CTX))", 2
-    ),
-    "ÞṀ": make_cmd(
-        "matrix_multiply(iterable({}, ctx=CTX), iterable({}, ctx=CTX))", 2
-    ),
+    "Þ•": make_cmd("dot_product(iterable({}, ctx=CTX), iterable({}, ctx=CTX))", 2),
+    "ÞṀ": make_cmd("matrix_multiply(iterable({}, ctx=CTX), iterable({}, ctx=CTX))", 2),
     "ÞḊ": fn_to_cmd(determinant, 1),
     "Þ/": make_cmd("diagonal_main(deref({}))", 1),
     "Þ\\": make_cmd("diagonal_anti(deref({}))", 1),
